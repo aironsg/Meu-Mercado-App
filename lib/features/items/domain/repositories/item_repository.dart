@@ -1,7 +1,11 @@
 import '../entities/item_entity.dart';
 
 abstract class ItemRepository {
-  Future<void> addItem(ItemEntity item);
-  Future<List<ItemEntity>> getItems(String userId);
-  Future<void> deleteItem(String userId, String itemId);
+  /// Salva uma lista completa de compras no banco de dados.
+  /// O `shoppingList` deve ser o payload final contendo userId, data e o array de itens.
+  Future<void> saveList(Map<String, dynamic> shoppingList);
+
+  /// Busca os itens de uma categoria específica (ex: 'MERCADO')
+  /// na última lista de compras cadastrada pelo usuário.
+  Future<List<ItemEntity>> getPreviousListItemsByCategory(String category);
 }

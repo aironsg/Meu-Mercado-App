@@ -1,17 +1,22 @@
 import '../../domain/entities/item_entity.dart';
 
 class ItemState {
-  final List<ItemEntity> items;
+  final List<ItemEntity> editingItems; // Lista de itens temporária (em edição)
   final bool loading;
   final String? error;
 
-  ItemState({this.items = const [], this.loading = false, this.error});
+  ItemState({this.editingItems = const [], this.loading = false, this.error});
 
-  ItemState copyWith({List<ItemEntity>? items, bool? loading, String? error}) {
+  // Método copyWith para atualizar o estado de forma imutável
+  ItemState copyWith({
+    List<ItemEntity>? editingItems,
+    bool? loading,
+    String? error,
+  }) {
     return ItemState(
-      items: items ?? this.items,
+      editingItems: editingItems ?? this.editingItems,
       loading: loading ?? this.loading,
-      error: error,
+      error: error ?? this.error,
     );
   }
 }
