@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "96653741607",
+    "project_id": "meu-mercado-6da4a",
+    "storage_bucket": "meu-mercado-6da4a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96653741607:android:1ab72ee650ebd46a354802",
+        "android_client_info": {
+          "package_name": "com.example.meu_mercado"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdMPEOXgnkgO75dfz2xxwzMgpjUExAPX8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

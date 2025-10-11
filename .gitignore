@@ -1,0 +1,81 @@
+# ==========================================================
+# PASTA DE BUILD E ARTEFATOS
+# Gerados automaticamente, não devem ser versionados.
+# ==========================================================
+/build
+.dart_tool/
+.packages
+
+# Cache de pacotes pub
+.pub-cache/
+
+# Arquivos de documentação gerados pelo dartdoc
+doc/api/
+
+# Cache de testes de análise/instrumentação
+coverage/
+
+# ==========================================================
+# ARTEFATOS NATIVOS
+# ==========================================================
+# iOS e macOS
+ios/Flutter/Generated.xcconfig
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Runner.xcworkspace
+ios/Runner.xcuserdatad
+ios/Pods/
+ios/.symlinks/
+macos/build/
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Android
+android/local.properties
+android/key.properties
+android/.gradle
+android/captures/
+android/app/build/
+android/app/*.apk
+android/app/*.aab
+android/app/src/main/assets/flutter_assets/
+
+# ==========================================================
+# ARQUIVOS DE IDE E SISTEMA OPERACIONAL
+# ==========================================================
+# Configurações de IDE (IntelliJ/Android Studio, VS Code)
+.idea/
+.vscode/
+
+# Arquivos de cache do macOS
+.DS_Store
+
+# Arquivos de cache do Windows
+Thumbs.db
+*.tmp
+*.bak
+
+# ==========================================================
+# ARQUIVOS DE SEGURANÇA E CHAVES (NÃO DEVEM SUBIR!)
+# ==========================================================
+# Arquivos que contêm segredos, como chaves de API, senhas, etc.
+# Se você usar arquivos .env, .keys, ou similares, adicione-os aqui!
+.env
+.env.*.local
+.keys
+*.jks
+*.keystore
+
+# Arquivos de log e depuração
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ==========================================================
+# ARQUIVO DE CONFIGURAÇÃO DO FIREBASE (EXCEÇÃO)
+# ==========================================
+# MANTIDO: O arquivo firebase_options.dart é necessário para todos os
+# membros da equipe e deve ser versionado neste projeto.
+
+# (Não precisamos de uma regra de exceção, pois não há regras que o ignorem,
+# mas se você ignorasse a pasta lib/, esta seria a linha para INCLUÍ-lo)
+# ==========================================================
