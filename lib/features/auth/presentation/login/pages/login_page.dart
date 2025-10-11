@@ -32,7 +32,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(AppAssets.logo, height: 120),
+                  Image.asset(AppAssets.logo, height: 180),
                   const SizedBox(height: 24),
                   TextField(
                     controller: emailController,

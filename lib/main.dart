@@ -1,8 +1,19 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'app/app_module.dart';
 import 'app/app_widget.dart';
 
-void main() {
-  runApp(ModularApp(module: AppModule(), child: const AppWidget()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  // O ProviderScope precisa envolver a raiz do aplicativo (AppWidget)
+  // para que qualquer Controller ou Provider possa ser lido.
+  runApp(
+    ProviderScope(
+      child: ModularApp(module: AppModule(), child: const AppWidget()),
+    ),
+  );
 }

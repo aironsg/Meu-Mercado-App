@@ -25,7 +25,8 @@ class _SplashPageState extends State<SplashPage>
     )..forward();
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
-    _splashController.initialize(context);
+    // Adia a chamada para APÓS o build e remove o parâmetro context
+    Future.microtask(() => _splashController.initialize());
   }
 
   @override
@@ -37,11 +38,11 @@ class _SplashPageState extends State<SplashPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.white,
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: Image.asset(AppAssets.logo, height: 160),
+          child: Image.asset(AppAssets.logo, height: 300),
         ),
       ),
     );
