@@ -1,522 +1,245 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
-import 'package:intl/intl.dart';
-
 import '../../domain/entities/item_entity.dart';
-import '../item_controller.dart';
+import '../controller/item_controller.dart';
+import '../state/item_state.dart';
+import '../../../../core/theme/app_colors.dart'; // Assumindo este caminho
 
 class ItemPage extends ConsumerStatefulWidget {
-  const ItemPage({super.key});
+  final Map<String, dynamic>? itemToEdit; // Argumento de navegação opcional
+
+  const ItemPage({super.key, this.itemToEdit});
 
   @override
   ConsumerState<ItemPage> createState() => _ItemPageState();
 }
 
 class _ItemPageState extends ConsumerState<ItemPage> {
+  // Chave global para o formulário
   final _formKey = GlobalKey<FormState>();
+
+  // Controllers para os campos de texto
   final _nameController = TextEditingController();
-  final _quantityController = TextEditingController();
+  final _categoryController = TextEditingController();
   final _priceController = TextEditingController();
-  final _noteController = TextEditingController();
+  final _quantityController = TextEditingController();
 
-  ItemEntity? _itemBeingEdited;
+  // Guarda o ID do item sendo editado (se houver)
+  String? _editingItemId;
 
-  final List<String> _categories = [
-    'MERCADO',
-    'FEIRA',
-    'ROUPAS',
-    'CASA',
-    'GERAIS',
-  ];
-  String? _selectedCategory;
+  @override
+  void initState() {
+    super.initState();
 
-  // ✅ Formatador de moeda padrão
-  final NumberFormat _currencyFormatter = NumberFormat.currency(
-    locale: 'pt_BR',
-    symbol: 'R\$',
-  );
+    // 🚨 LÓGICA DE EDIÇÃO VIA ARGUMENTO MODULAR
+    // Verifica se a página recebeu um Map (ItemEntity.toMap()) do fluxo de ListPage
+    final itemArgs = Modular.args.data;
 
-  // ✅ Função para obter o valor numérico (double)
-  double _getRawPrice(String maskedValue) {
-    if (maskedValue.isEmpty) return 0.0;
-    String clean = maskedValue
-        .replaceAll(RegExp(r'[^0-9,]'), '')
-        .replaceAll('.', '')
-        .replaceAll(',', '.');
-    return double.tryParse(clean) ?? 0.0;
+    if (itemArgs is Map<String, dynamic> && itemArgs.containsKey('id')) {
+      final itemToEdit = ItemEntity.fromMap(itemArgs);
+
+      // Carrega o item no formulário após o frame ser desenhado
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadItemForEdit(itemToEdit);
+      });
+    }
   }
 
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.grey),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.blue, width: 2),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    );
-  }
-
-  void _editItem(ItemEntity item) {
-    String priceFormatted = item.price > 0.0
-        ? _currencyFormatter.format(item.price)
-        : '';
-
-    _nameController.text = item.name;
-    _quantityController.text = item.quantity.toString();
-    _priceController.text = priceFormatted;
-    _noteController.text = item.note ?? '';
-
+  void _loadItemForEdit(ItemEntity item) {
     setState(() {
-      _selectedCategory = item.category;
-      _itemBeingEdited = item;
-    });
-
-    Scrollable.ensureVisible(
-      context,
-      alignment: 0.0,
-      duration: const Duration(milliseconds: 300),
-    );
-  }
-
-  void _clearItemFields() {
-    _nameController.clear();
-    _quantityController.clear();
-    _priceController.clear();
-    _noteController.clear();
-  }
-
-  void _resetEditingState() {
-    _clearItemFields();
-    setState(() {
-      _itemBeingEdited = null;
+      _editingItemId = item.id;
+      _nameController.text = item.name;
+      _categoryController.text = item.category;
+      _priceController.text = item.price.toString();
+      _quantityController.text = item.quantity.toString();
     });
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _quantityController.dispose();
+    _categoryController.dispose();
     _priceController.dispose();
-    _noteController.dispose();
+    _quantityController.dispose();
     super.dispose();
   }
 
-  Future<String?> _showCategoryDialog(BuildContext context) async {
-    String? tempSelectedCategory = _categories.first;
+  // Lógica principal: Adicionar ou Atualizar item na lista temporária
+  void _submitItem(ItemController controller) {
+    if (!_formKey.currentState!.validate()) return;
 
-    return await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Selecione a Categoria Anterior'),
-          content: DropdownButtonFormField<String>(
-            value: tempSelectedCategory,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-            items: _categories.map((String category) {
-              return DropdownMenuItem<String>(
-                value: category,
-                child: Text(category),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              tempSelectedCategory = newValue;
-            },
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(null),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(tempSelectedCategory),
-              child: const Text('Buscar'),
-            ),
-          ],
-        );
-      },
+    final name = _nameController.text;
+    final category = _categoryController.text;
+    final price = double.tryParse(_priceController.text) ?? 0.0;
+    final quantity = int.tryParse(_quantityController.text) ?? 1;
+
+    final newItem = ItemEntity(
+      // Se _editingItemId for null, o ID será um UUID novo gerado no construtor
+      id: _editingItemId ?? UniqueKey().toString(),
+      name: name,
+      category: category,
+      price: price,
+      quantity: quantity,
+      // Você pode adicionar um campo isDone=false se necessário
     );
+
+    if (_editingItemId != null) {
+      // 1. Atualiza na lista temporária de edição
+      controller.updateItemInEditingList(newItem);
+
+      // 2. Limpa o modo de edição e navega de volta (se vier de ListPage)
+      _resetForm();
+      Modular.to.pop();
+    } else {
+      // 1. Adiciona à lista temporária
+      controller.addItemToEditingList(newItem);
+
+      // 2. Reseta o formulário
+      _resetForm();
+    }
+  }
+
+  void _resetForm() {
+    setState(() {
+      _editingItemId = null;
+    });
+    _formKey.currentState?.reset();
+    _nameController.clear();
+    _categoryController.clear();
+    _priceController.clear();
+    _quantityController.clear();
+  }
+
+  void _removeItemFromList(ItemController controller, String itemId) {
+    controller.removeItemFromEditingList(itemId);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(itemControllerProvider);
     final controller = ref.read(itemControllerProvider.notifier);
+    final state = ref.watch(itemControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _itemBeingEdited != null ? 'Editando Item' : 'Cadastro de Itens',
+          _editingItemId != null ? 'Editar Item' : 'Cadastro de Item',
         ),
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
+        backgroundColor: AppColors.primary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
+            onPressed: state.editingItems.isNotEmpty && _editingItemId == null
+                ? controller.registerList
+                : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: controller.resetList,
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 10.0, bottom: 10.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // FORMULÁRIO
+            Form(
+              key: _formKey,
+              child: Column(
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        controller.resetList();
-                        _resetEditingState();
-                        setState(() {
-                          _selectedCategory = null;
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Nova lista de compras iniciada!'),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.playlist_add),
-                      label: const Text('Nova Lista'),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome do Item',
                     ),
+                    validator: (value) =>
+                        value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final category = await _showCategoryDialog(context);
-                        if (category != null) {
-                          await controller.loadPreviousItems(category);
-                          _resetEditingState();
-                          setState(() {
-                            _selectedCategory = category;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Itens de $category carregados da lista anterior.',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.history),
-                      label: const Text('Lista Anterior'),
+                  TextFormField(
+                    controller: _categoryController,
+                    decoration: const InputDecoration(labelText: 'Categoria'),
+                    validator: (value) =>
+                        value!.isEmpty ? 'Campo obrigatório' : null,
+                  ),
+                  TextFormField(
+                    controller: _priceController,
+                    decoration: const InputDecoration(
+                      labelText: 'Preço Estimado',
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) =>
+                        value!.isEmpty ? 'Campo obrigatório' : null,
+                  ),
+                  TextFormField(
+                    controller: _quantityController,
+                    decoration: const InputDecoration(labelText: 'Quantidade'),
+                    keyboardType: TextInputType.number,
+                    validator: (value) =>
+                        value!.isEmpty ? 'Campo obrigatório' : null,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: state.loading
+                          ? null
+                          : () => _submitItem(controller),
+                      icon: Icon(
+                        _editingItemId != null ? Icons.save : Icons.add,
+                      ),
+                      label: Text(
+                        _editingItemId != null
+                            ? 'Salvar Edição'
+                            : 'Adicionar à Lista',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _editingItemId != null
+                            ? Colors.blue
+                            : AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: ListView(
-                children: [
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        DropdownButtonFormField<String>(
-                          value: _selectedCategory,
-                          decoration: _inputDecoration(
-                            'Categoria (Obrigatório)',
-                          ),
-                          items: _categories.map((String category) {
-                            return DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(category),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedCategory = newValue;
-                            });
-                          },
-                          validator: (v) =>
-                              v == null ? 'Selecione uma categoria' : null,
-                        ),
-                        const SizedBox(height: 16),
+            const SizedBox(height: 30),
 
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: _inputDecoration('Nome do Item'),
-                          validator: (v) =>
-                              v!.isEmpty ? 'Campo obrigatório' : null,
-                        ),
-                        const SizedBox(height: 16),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _quantityController,
-                                decoration: _inputDecoration('Quantidade'),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _priceController,
-                                decoration: _inputDecoration(
-                                  'Preço (Opcional)',
-                                ),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  CurrencyInputFormatter(), // ✅ Novo formatador correto
-                                ],
-                                validator: (v) {
-                                  if (v != null && v.isNotEmpty) {
-                                    final rawPrice = _getRawPrice(v);
-                                    if (rawPrice <= 0) {
-                                      return 'Preço não pode ser zero';
-                                    }
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        TextFormField(
-                          controller: _noteController,
-                          decoration: _inputDecoration('Observação'),
-                          maxLines: 3,
-                        ),
-                        const SizedBox(height: 20),
-
-                        ElevatedButton.icon(
-                          icon: Icon(
-                            _itemBeingEdited != null
-                                ? Icons.save
-                                : Icons.add_circle_outline,
-                            size: 24,
-                          ),
-                          label: Text(
-                            _itemBeingEdited != null
-                                ? 'Salvar Edição'
-                                : 'Adicionar Item à Lista',
-                            style: const TextStyle(fontSize: 18),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 15,
-                              horizontal: 20,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            backgroundColor: _itemBeingEdited != null
-                                ? Colors.orange.shade700
-                                : Theme.of(context).colorScheme.secondary,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(double.infinity, 50),
-                          ),
-                          onPressed: state.loading || _selectedCategory == null
-                              ? null
-                              : () async {
-                                  if (_formKey.currentState!.validate()) {
-                                    final double rawPrice = _getRawPrice(
-                                      _priceController.text,
-                                    );
-
-                                    final newItem = ItemEntity(
-                                      id:
-                                          _itemBeingEdited?.id ??
-                                          const Uuid().v4(),
-                                      name: _nameController.text.trim(),
-                                      category: _selectedCategory!,
-                                      quantity:
-                                          int.tryParse(
-                                            _quantityController.text,
-                                          ) ??
-                                          0,
-                                      price: rawPrice,
-                                      note: _noteController.text.trim(),
-                                    );
-
-                                    if (_itemBeingEdited != null) {
-                                      controller.updateItemInEditingList(
-                                        newItem,
-                                      );
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Item atualizado com sucesso!',
-                                          ),
-                                        ),
-                                      );
-                                    } else {
-                                      controller.addItemToEditingList(newItem);
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Item adicionado à lista temporária!',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                    _resetEditingState();
-                                  }
-                                },
-                        ),
-                        if (_itemBeingEdited != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: TextButton(
-                              onPressed: _resetEditingState,
-                              child: const Text(
-                                'Cancelar Edição',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 25),
-                      ],
-                    ),
-                  ),
-                  const Text(
-                    'Itens na Lista (Edição)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const Divider(),
-                  if (state.editingItems.isEmpty)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: 20.0),
-                        child: Text(
-                          'Nenhum item adicionado ainda. Comece a adicionar!',
-                        ),
-                      ),
-                    ),
-                  ...state.editingItems.map((item) {
-                    final priceDisplay = item.price > 0.0
-                        ? 'R\$ ${item.price.toStringAsFixed(2)}'
-                        : 'A preencher';
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      color: _itemBeingEdited?.id == item.id
-                          ? Colors.yellow.shade100
-                          : Colors.white,
-                      child: ListTile(
-                        title: Text(
-                          '${item.name} (${item.category})',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text('${item.quantity} un. | $priceDisplay'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _editItem(item),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () =>
-                                  controller.removeItemFromEditingList(item.id),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  const SizedBox(height: 100),
-                ],
-              ),
+            // LISTA TEMPORÁRIA DE ITENS
+            Text(
+              'Lista Temporária (${state.editingItems.length} itens)',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            state.editingItems.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.only(top: 20),
+                    child: Text('Nenhum item adicionado ainda.'),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: state.editingItems.length,
+                    itemBuilder: (context, index) {
+                      final item = state.editingItems[index];
+                      return ListTile(
+                        title: Text(item.name),
+                        subtitle: Text(
+                          '${item.quantity} x R\$ ${item.price.toStringAsFixed(2)}',
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () =>
+                              _removeItemFromList(controller, item.id),
+                        ),
+                        // Permite editar diretamente na lista temporária
+                        onTap: () => _loadItemForEdit(item),
+                      );
+                    },
+                  ),
           ],
         ),
       ),
-      bottomNavigationBar: state.editingItems.isNotEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  backgroundColor: Colors.green.shade600,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  elevation: 5,
-                ),
-                onPressed: state.loading
-                    ? null
-                    : () async {
-                        await controller.registerList();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Lista Cadastrada com Sucesso!'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                          _resetEditingState();
-                          setState(() {
-                            _selectedCategory = null;
-                          });
-                        }
-                      },
-                child: state.loading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'Cadastrar Lista Completa',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-            )
-          : null,
-    );
-  }
-}
-
-// ✅ Formatador customizado: digitação da direita para a esquerda (centavos → milhões)
-class CurrencyInputFormatter extends TextInputFormatter {
-  final NumberFormat _formatter = NumberFormat.currency(
-    locale: 'pt_BR',
-    symbol: 'R\$ ',
-    decimalDigits: 2,
-  );
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    String newText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
-    if (newText.isEmpty) newText = '0';
-
-    double value = double.parse(newText) / 100.0;
-    final newString = _formatter.format(value);
-
-    return TextEditingValue(
-      text: newString,
-      selection: TextSelection.collapsed(offset: newString.length),
     );
   }
 }

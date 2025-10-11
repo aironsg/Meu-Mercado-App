@@ -12,13 +12,18 @@ class ItemModel extends ItemEntity {
 
   factory ItemModel.fromMap(Map<String, dynamic> map) {
     return ItemModel(
-      id: map['id'],
-      name: map['name'],
-      category: map['category'],
-      quantity: map['quantity'],
-      price: (map['price'] as num).toDouble(),
-      note: map['note'],
+      id: map['id'] as String,
+      name: map['name'] as String,
+      category: map['category'] as String,
+      quantity: (map['quantity'] as num?)?.toInt() ?? 0,
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      note: map['note'] as String?,
     );
+  }
+
+  factory ItemModel.fromFirestoreMap(Map<String, dynamic> map) {
+    // Caso o dado venha do Firestore (garanta types)
+    return ItemModel.fromMap(map);
   }
 
   Map<String, dynamic> toMap() {

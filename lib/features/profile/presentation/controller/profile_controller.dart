@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Import para signOut
 import 'package:flutter_modular/flutter_modular.dart'; // Import para navegação
-import '../domain/entities/user_profile.dart';
-import '../domain/usecases/get_user_profile_usecase.dart';
-import '../data/repositories/profile_repository_provider.dart';
+import '../../domain/entities/user_profile.dart';
+import '../../domain/usecases/get_user_profile_usecase.dart';
+import '../../data/repositories/profile_repository_provider.dart';
 
 final profileControllerProvider =
     StateNotifierProvider<ProfileController, AsyncValue<UserProfile>>(

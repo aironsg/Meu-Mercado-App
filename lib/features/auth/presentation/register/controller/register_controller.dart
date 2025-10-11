@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/usecases/register_usecase.dart';
-import '../../data/repository/auth_repository_provider.dart';
-import 'register_state.dart';
-import '../../../home/presentation/home_page.dart';
+import '../../../domain/usecases/register_usecase.dart';
+import '../../../data/repository/auth_repository_provider.dart';
+import '../state/register_state.dart';
+import '../../../../home/presentation/pages/home_page.dart';
 
 final registerControllerProvider =
     StateNotifierProvider<RegisterController, RegisterState>(

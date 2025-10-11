@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../items/domain/entities/item_entity.dart';
+import '../../../items/domain/entities/item_entity.dart';
 
 class ShoppingListEntity extends Equatable {
   final String id;

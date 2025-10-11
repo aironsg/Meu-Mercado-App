@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../provider/home_page_provider.dart';
 
-import '../../profile/presentation/pages/profile_page.dart';
-import '../../history/pages/history_page.dart';
-import '../../items/presentation/pages/item_page.dart';
-import '../../lists/pages/lists_page.dart';
-
-class HomePage extends StatelessWidget {
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   String _greeting() {
@@ -18,43 +16,36 @@ class HomePage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
     final displayName =
         user?.displayName ?? user?.email?.split('@').first ?? 'Usuário';
 
+    // Monitora o provedor da última lista
+    final latestListAsync = ref.watch(getLatestListProvider);
+
+    // Estrutura de navegação Modular
     final tiles = [
       {
         'title': 'Perfil',
         'icon': 'assets/icons/profile.png',
-        'route': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ProfilePage()),
-        ),
+        'route': () => Modular.to.navigate('/profile'),
       },
       {
-        'title': 'Histórico',
+        'title': 'Estatísticas', // Alterado de 'Histórico' para Estatísticas
         'icon': 'assets/icons/history.png',
-        'route': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const HistoryPage()),
-        ),
+        'route': () =>
+            Modular.to.navigate('/history'), // Rota para nova HistoryPage
       },
       {
-        'title': 'Cadastro',
+        'title': 'Cadastrar Lista', // Rota de Cadastro de Item/Lista
         'icon': 'assets/icons/add_item.png',
-        'route': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ItemPage()),
-        ),
+        'route': () => Modular.to.navigate('/item'),
       },
       {
-        'title': 'Lista',
+        'title': 'Histórico', // Rota para Listagem de Listas (Tabela)
         'icon': 'assets/icons/list.png',
-        'route': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ListsPage()),
-        ),
+        'route': () => Modular.to.navigate('/lists'),
       },
     ];
 
@@ -65,8 +56,12 @@ class HomePage extends StatelessWidget {
         backgroundColor: AppColors.primary,
         elevation: 0,
         actions: [
+          // Lógica de Logout
           IconButton(
-            onPressed: () => FirebaseAuth.instance.signOut(),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) Modular.to.navigate('/login');
+            },
             icon: const Icon(Icons.logout),
           ),
         ],
@@ -74,8 +69,9 @@ class HomePage extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Saudação
+            // SAUDAÇÃO (TOPO)
             Row(
               children: [
                 Expanded(
@@ -119,7 +115,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Grid de cards
+            // GRID DE CARDS (MAIOR PARTE DA TELA)
             Expanded(
               child: GridView.builder(
                 itemCount: tiles.length,
@@ -137,11 +133,11 @@ class HomePage extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                             color: Colors.black12,
                             blurRadius: 6,
-                            offset: const Offset(0, 3),
+                            offset: Offset(0, 3),
                           ),
                         ],
                       ),
@@ -163,6 +159,52 @@ class HomePage extends StatelessWidget {
                   );
                 },
               ),
+            ),
+            const SizedBox(height: 30),
+
+            // VISÃO GERAL DA ÚLTIMA LISTA (PARTE INFERIOR)
+            const Text(
+              'Última Lista de Compras',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            latestListAsync.when(
+              loading: () => const Center(child: LinearProgressIndicator()),
+              error: (e, s) => Text('Erro ao carregar lista: $e'),
+              data: (list) {
+                if (list == null) {
+                  return const Text('Nenhuma lista cadastrada ainda.');
+                }
+
+                final totalItems =
+                    (list['items'] as List<dynamic>?)?.length ?? 0;
+                final date = list['createdAt'] is DateTime
+                    ? (list['createdAt'] as DateTime).day.toString().padLeft(
+                            2,
+                            '0',
+                          ) +
+                          '/' +
+                          (list['createdAt'] as DateTime).month
+                              .toString()
+                              .padLeft(2, '0')
+                    : 'Data Indefinida';
+
+                return Card(
+                  elevation: 4,
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.receipt_long,
+                      color: AppColors.primary,
+                    ),
+                    title: Text('Lista de $date'),
+                    subtitle: Text('$totalItems itens na lista.'),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      Modular.to.navigate('/lists');
+                    },
+                  ),
+                );
+              },
             ),
           ],
         ),

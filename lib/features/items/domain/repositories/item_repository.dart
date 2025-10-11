@@ -8,4 +8,6 @@ abstract class ItemRepository {
   /// Busca os itens de uma categoria específica (ex: 'MERCADO')
   /// na última lista de compras cadastrada pelo usuário.
   Future<List<ItemEntity>> getPreviousListItemsByCategory(String category);
+  Future<List<Map<String, dynamic>>> getUserLists();
+  Future<Map<String, dynamic>?> getLatestList();
 }

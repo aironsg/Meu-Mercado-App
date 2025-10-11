@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/app_assets.dart';
-import 'splash_controller.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/app_assets.dart';
+import '../controller/splash_controller.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});

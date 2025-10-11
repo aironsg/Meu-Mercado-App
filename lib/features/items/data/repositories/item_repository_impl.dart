@@ -1,15 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/entities/item_entity.dart';
+import '../../data/models/item_model.dart';
 import '../../domain/repositories/item_repository.dart';
 
 class ItemRepositoryImpl implements ItemRepository {
-  final _firestore = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   static const String _collectionPath = 'shopping_lists';
 
-  /// Salva o payload completo da lista de compras (data, userId e itens) no Firestore.
   @override
   Future<void> saveList(Map<String, dynamic> shoppingList) async {
     final uid = _auth.currentUser?.uid;
@@ -20,58 +20,134 @@ class ItemRepositoryImpl implements ItemRepository {
     }
 
     try {
-      // Adiciona o documento contendo todos os dados (incluindo o array de itens)
       await _firestore.collection(_collectionPath).add({
         ...shoppingList,
         'userId': uid,
-        'createdAt':
-            FieldValue.serverTimestamp(), // Marca a data/hora exata do cadastro
+        'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      throw Exception('Falha ao salvar a lista de compras no servidor.');
+      throw Exception('Falha ao salvar a lista de compras no servidor. $e');
     }
   }
 
-  /// Busca itens de uma categoria específica na última lista cadastrada pelo usuário.
-  /// (Simula a busca da lista "do mês anterior").
   @override
   Future<List<ItemEntity>> getPreviousListItemsByCategory(
     String category,
   ) async {
     final uid = _auth.currentUser?.uid;
-    if (uid == null) {
-      return [];
-    }
+    if (uid == null) return [];
 
     try {
-      // 1. Busca a lista mais recente do usuário (limitamos a 1, pois queremos a "anterior")
       final querySnapshot = await _firestore
           .collection(_collectionPath)
           .where('userId', isEqualTo: uid)
           .orderBy('createdAt', descending: true)
-          .limit(1) // Pega apenas a última lista
+          .limit(1)
           .get();
 
-      if (querySnapshot.docs.isEmpty) {
-        return []; // Nenhuma lista encontrada
-      }
+      if (querySnapshot.docs.isEmpty) return [];
 
-      // 2. Extrai os dados
       final listData = querySnapshot.docs.first.data();
       final itemsMap = listData['items'] as List<dynamic>?;
 
-      if (itemsMap == null) {
-        return [];
-      }
+      if (itemsMap == null) return [];
 
-      // 3. Converte os mapas em ItemEntity e filtra pela categoria
-      return itemsMap
-          .map((itemMap) => ItemEntity.fromMap(itemMap as Map<String, dynamic>))
+      final items = itemsMap
+          .map((i) => ItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
           .where((item) => item.category == category)
           .toList();
+
+      return items;
     } catch (e) {
-      // Em caso de falha na busca, retornamos uma lista vazia para não quebrar o app.
+      // não propagar exceção fatal — retorna lista vazia e deixe UI lidar com isso
       return [];
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getUserLists() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return [];
+
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collectionPath)
+          .where('userId', isEqualTo: uid)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final lists = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+
+        // createdAt pode ser Timestamp ou String; normalize para DateTime
+        DateTime? createdAt;
+        final rawCreated = data['createdAt'];
+        if (rawCreated is Timestamp) {
+          createdAt = rawCreated.toDate();
+        } else if (rawCreated is String) {
+          createdAt = DateTime.tryParse(rawCreated);
+        } else {
+          createdAt = null;
+        }
+
+        final itemsRaw = data['items'] as List<dynamic>? ?? [];
+        final items = itemsRaw
+            .map((i) => ItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
+            .toList();
+
+        return <String, dynamic>{
+          'id': doc.id,
+          'createdAt': createdAt,
+          'items': items, // List<ItemModel> (subtipo de ItemEntity)
+        };
+      }).toList();
+
+      return lists;
+    } catch (e) {
+      throw Exception('Erro ao buscar listas: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getLatestList() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return null;
+
+    try {
+      final snapshot = await _firestore
+          .collection(_collectionPath)
+          .where('userId', isEqualTo: uid)
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+
+      final doc = snapshot.docs.first;
+      final data = doc.data();
+
+      DateTime? createdAt;
+      final rawCreated = data['createdAt'];
+      if (rawCreated is Timestamp) {
+        createdAt = rawCreated.toDate();
+      } else if (rawCreated is String) {
+        createdAt = DateTime.tryParse(rawCreated);
+      } else {
+        createdAt = null;
+      }
+
+      final itemsRaw = data['items'] as List<dynamic>? ?? [];
+      final items = itemsRaw
+          .map((i) => ItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
+          .toList();
+
+      return {
+        'id': doc.id,
+        'createdAt': createdAt,
+        'items': items, // List<ItemModel>
+      };
+    } catch (e) {
+      throw Exception('Erro ao buscar a lista mais recente: $e');
     }
   }
 }

@@ -1,25 +1,36 @@
+import 'dart:ui';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../domain/entities/item_entity.dart';
-import '../domain/repositories/item_repository.dart'; // NOVO: Para tipar o Repositório
-import '../domain/usecases/get_previous_items_usecase.dart';
-import '../data/repositories/item_repository_impl.dart'; // Import da implementação
-import '../presentation/state/item_state.dart';
+import 'package:meu_mercado/features/lists/presentation/provider/lists_provider.dart';
+import '../../domain/entities/item_entity.dart';
+import '../../domain/repositories/item_repository.dart';
+import '../../domain/usecases/get_previous_items_usecase.dart';
+import '../../data/repositories/item_repository_impl.dart';
+import '../../../home/presentation/provider/home_page_provider.dart'; // Para invalidar
+import '../state/item_state.dart';
 
+// Provedores de injeção... (Mantidos)
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepositoryImpl();
 });
 
-// Provedor do Use Case (Depende do Repositório)
 final getPreviousItemsUseCaseProvider = Provider(
   (ref) => GetPreviousItemsUseCase(ref.read(itemRepositoryProvider)),
 );
 
-// Provedor do Controller (Depende do Repositório e do Use Case)
+// NOVO: Adiciona a injeção do ref.invalidate para ser passado para o Controller
 final itemControllerProvider = StateNotifierProvider<ItemController, ItemState>(
   (ref) => ItemController(
     repository: ref.read(itemRepositoryProvider),
     getPreviousItemsUseCase: ref.read(getPreviousItemsUseCaseProvider),
+    // Injetamos a função invalidate para o Controller usar, corrigindo o erro.
+    onInvalidate: () {
+      ref.invalidate(getLatestListProvider);
+      ref.invalidate(
+        listControllerProvider,
+      ); // Invalida a lista completa também
+    },
   ),
 );
 
@@ -30,23 +41,23 @@ final itemControllerProvider = StateNotifierProvider<ItemController, ItemState>(
 class ItemController extends StateNotifier<ItemState> {
   final ItemRepository _repository;
   final GetPreviousItemsUseCase _getPreviousItemsUseCase;
+  final VoidCallback _onInvalidate; // Função para invalidar Providers
 
   ItemController({
     required ItemRepository repository,
     required GetPreviousItemsUseCase getPreviousItemsUseCase,
+    required VoidCallback onInvalidate,
   }) : _repository = repository,
        _getPreviousItemsUseCase = getPreviousItemsUseCase,
+       _onInvalidate = onInvalidate,
        super(ItemState());
 
   // MÉTODO CHAVE: Atualiza um item existente na lista temporária (Edição)
   void updateItemInEditingList(ItemEntity updatedItem) {
-    // Itera sobre a lista de itens de edição
     final updatedList = state.editingItems.map((item) {
-      // Se o ID for igual, substitui pelo item atualizado
       return item.id == updatedItem.id ? updatedItem : item;
     }).toList();
 
-    // Atualiza o estado da lista
     state = state.copyWith(editingItems: updatedList);
   }
 
@@ -80,7 +91,6 @@ class ItemController extends StateNotifier<ItemState> {
         throw Exception("Usuário não autenticado.");
       }
 
-      // Payload que será salvo no Repositório
       final shoppingListPayload = {
         'userId': user.uid,
         'date': DateTime.now().toIso8601String(),
@@ -88,6 +98,9 @@ class ItemController extends StateNotifier<ItemState> {
       };
 
       await _repository.saveList(shoppingListPayload);
+
+      // 🚨 CRÍTICO: Invalida os provedores de leitura (Home Page e List Page)
+      _onInvalidate();
 
       // Limpa a lista de edição após o sucesso
       state = state.copyWith(editingItems: [], loading: false);
@@ -100,10 +113,7 @@ class ItemController extends StateNotifier<ItemState> {
   Future<void> loadPreviousItems(String category) async {
     state = state.copyWith(loading: true);
     try {
-      // 1. Busca itens da categoria e mês anterior via Use Case
       final previousItems = await _getPreviousItemsUseCase.execute(category);
-
-      // 2. Sobrescreve a lista atual com os itens da lista anterior
       state = state.copyWith(editingItems: previousItems, loading: false);
     } catch (e) {
       state = state.copyWith(error: e.toString(), loading: false);

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/usecases/login_usecase.dart';
-import 'login_state.dart';
-import '../../../../home/presentation/home_page.dart';
+import '../state/login_state.dart';
+import '../../../../home/presentation/pages/home_page.dart';
 import '../../../data/repository/auth_repository_provider.dart';
 
 final loginControllerProvider =
