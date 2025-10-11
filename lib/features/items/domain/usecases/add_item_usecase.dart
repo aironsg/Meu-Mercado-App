@@ -1,9 +1,12 @@
-import '../repositories/items_repository.dart';
 import '../entities/item_entity.dart';
+import '../repositories/item_repository.dart';
 
 class AddItemUseCase {
-  final ItemsRepository repository;
+  final ItemRepository repository;
+
   AddItemUseCase(this.repository);
 
-  Future<int> call(ItemEntity item) => repository.addItem(item);
+  Future<void> execute(ItemEntity item) async {
+    await repository.addItem(item);
+  }
 }

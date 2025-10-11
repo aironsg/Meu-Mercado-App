@@ -6,8 +6,12 @@ class RegisterUseCase {
 
   RegisterUseCase(this.repository);
 
-  Future<User?> executeEmail(String email, String password) async {
-    return await repository.registerWithEmail(email, password);
+  Future<User?> registerWithEmail(
+    String name,
+    String email,
+    String password,
+  ) async {
+    return await repository.registerWithEmail(name, email, password);
   }
 
   Future<User?> executeGoogle() async {

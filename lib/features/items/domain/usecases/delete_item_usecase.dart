@@ -1,8 +1,10 @@
-import '../repositories/items_repository.dart';
+import '../repositories/item_repository.dart';
 
 class DeleteItemUseCase {
-  final ItemsRepository repository;
+  final ItemRepository repository;
   DeleteItemUseCase(this.repository);
 
-  Future<int> call(int id) => repository.deleteItem(id);
+  Future<void> execute(String userId, String itemId) async {
+    await repository.deleteItem(userId, itemId);
+  }
 }

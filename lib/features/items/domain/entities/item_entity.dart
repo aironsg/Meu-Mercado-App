@@ -1,17 +1,17 @@
 class ItemEntity {
-  final int? id;
+  final String id;
   final String name;
+  final String category;
   final int quantity;
-  final double estimatedPrice;
-  final bool purchased;
-  final DateTime createdAt;
+  final double price;
+  final String? note;
 
   ItemEntity({
-    this.id,
+    required this.id,
     required this.name,
+    required this.category,
     required this.quantity,
-    required this.estimatedPrice,
-    required this.purchased,
-    required this.createdAt,
+    required this.price,
+    this.note,
   });
 }

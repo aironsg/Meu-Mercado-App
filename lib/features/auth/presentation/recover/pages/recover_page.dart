@@ -35,7 +35,7 @@ class _RecoverPageState extends ConsumerState<RecoverPage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Image.asset(AppAssets.logo, height: 100),
+            Image.asset(AppAssets.logo, height: 150),
             const SizedBox(height: 24),
             TextField(
               controller: _emailController,

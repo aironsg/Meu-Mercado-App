@@ -20,21 +20,20 @@ class RegisterController extends StateNotifier<RegisterState> {
 
   Future<void> registerWithEmail(
     BuildContext context,
+    String name,
     String email,
     String password,
   ) async {
-    state = state.copyWith(loading: true);
+    state = state.copyWith(loading: true, error: null);
     try {
-      final user = await _useCase.executeEmail(email, password);
-      if (user != null) {
-        state = state.copyWith(user: user, loading: false);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
+      await _useCase.registerWithEmail(name, email, password);
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
-      state = state.copyWith(error: e.toString(), loading: false);
+      state = state.copyWith(error: e.toString());
+    } finally {
+      state = state.copyWith(loading: false);
     }
   }
 

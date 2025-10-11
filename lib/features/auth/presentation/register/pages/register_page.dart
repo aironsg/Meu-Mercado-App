@@ -13,6 +13,7 @@ class RegisterPage extends ConsumerStatefulWidget {
 }
 
 class _RegisterPageState extends ConsumerState<RegisterPage> {
+  final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmController = TextEditingController();
@@ -24,16 +25,40 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Criar Conta',
+          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Center(
             child: SingleChildScrollView(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(AppAssets.logo, height: 120),
+                  Image.asset(AppAssets.logo, height: 150),
                   const SizedBox(height: 24),
+
+                  // Campo Nome
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome completo',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Campo Email
                   TextField(
                     controller: emailController,
                     decoration: const InputDecoration(
@@ -42,6 +67,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Campo Senha
                   TextField(
                     controller: passwordController,
                     obscureText: true,
@@ -51,6 +78,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Campo Confirmar Senha
                   TextField(
                     controller: confirmController,
                     obscureText: true,
@@ -60,6 +89,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Botão Cadastrar
                   ElevatedButton(
                     onPressed: () {
                       if (passwordController.text != confirmController.text) {
@@ -72,6 +103,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       }
                       controller.registerWithEmail(
                         context,
+                        nameController.text,
                         emailController.text,
                         passwordController.text,
                       );
@@ -86,6 +118,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         : const Text('Cadastrar'),
                   ),
                   const SizedBox(height: 16),
+
+                  // Botão Google
                   OutlinedButton.icon(
                     onPressed: () => controller.registerWithGoogle(context),
                     icon: Image.asset('assets/icons/google.png', height: 24),
@@ -95,6 +129,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Link para Login
                   TextButton(
                     onPressed: () => Navigator.pushReplacement(
                       context,
@@ -102,6 +138,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                     child: const Text('Já tenho uma conta'),
                   ),
+
+                  // Mensagem de erro
                   if (state.error != null) ...[
                     const SizedBox(height: 16),
                     Text(

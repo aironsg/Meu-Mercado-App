@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_colors.dart';
 
-import '../../profile/pages/profile_page.dart';
+import '../../profile/presentation/pages/profile_page.dart';
 import '../../history/pages/history_page.dart';
-import '../../items/presentation/pages/add_edit_item_page.dart';
+import '../../items/presentation/pages/item_page.dart';
 import '../../lists/pages/lists_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -45,7 +45,7 @@ class HomePage extends StatelessWidget {
         'icon': 'assets/icons/add_item.png',
         'route': () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const AddEditItemPage()),
+          MaterialPageRoute(builder: (_) => const ItemPage()),
         ),
       },
       {
@@ -67,7 +67,7 @@ class HomePage extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () => FirebaseAuth.instance.signOut(),
-            icon: const Icon(Icons.exit_to_app),
+            icon: const Icon(Icons.logout),
           ),
         ],
       ),
