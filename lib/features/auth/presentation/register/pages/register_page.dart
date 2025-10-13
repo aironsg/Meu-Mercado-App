@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/app_assets.dart';
 import '../controller/register_controller.dart';
-import '../../login/pages/login_page.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -28,9 +28,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         elevation: 0,
+        // 🚨 CORREÇÃO: Adiciona botão de retorno seguro
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Modular.to.pop(), // Navega de volta
         ),
         title: const Text(
           'Criar Conta',
@@ -132,10 +133,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
                   // Link para Login
                   TextButton(
-                    onPressed: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
-                    ),
+                    // Nota: Aqui não usamos Modular.to.navigate pois as rotas de auth
+                    // geralmente usam push replacement se não estiverem no Modular.
+                    onPressed: () => Navigator.of(context).maybePop(),
                     child: const Text('Já tenho uma conta'),
                   ),
 

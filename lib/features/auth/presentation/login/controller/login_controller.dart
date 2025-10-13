@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/usecases/login_usecase.dart';
 import '../state/login_state.dart';
@@ -28,10 +29,7 @@ class LoginController extends StateNotifier<LoginState> {
       final user = await _useCase.executeEmail(email, password);
       if (user != null) {
         state = state.copyWith(user: user, loading: false);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
+        Modular.to.pushReplacementNamed('/home');
       }
     } catch (e) {
       state = state.copyWith(error: e.toString(), loading: false);

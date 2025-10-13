@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meu_mercado/features/history/domain/get_stats_usecase.dart';
 import 'package:meu_mercado/features/history/presentation/history_providers.dart';
@@ -14,7 +15,13 @@ class HistoryPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Análise de Compras'),
+        centerTitle: true,
         backgroundColor: AppColors.primary,
+        // 🚨 CORREÇÃO: Botão de retorno seguro
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.white),
+          onPressed: () => Modular.to.navigate("/home"),
+        ),
       ),
       body: statsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -91,7 +98,7 @@ class HistoryPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: data.map((item) {
-            final barHeight = (item.total / maxTotal) * 150;
+            final barWidthFactor = item.total / maxTotal;
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
               child: Row(
@@ -107,15 +114,8 @@ class HistoryPage extends ConsumerWidget {
                     child: Container(
                       height: 20,
                       alignment: Alignment.centerRight,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      width: double.infinity,
                       child: FractionallySizedBox(
-                        widthFactor:
-                            item.total /
-                            maxTotal, // Simula o preenchimento da barra
+                        widthFactor: barWidthFactor,
                         child: Container(
                           decoration: BoxDecoration(
                             color: AppColors.primary,
@@ -189,7 +189,6 @@ class HistoryPage extends ConsumerWidget {
     if (data.isEmpty)
       return const Text('Nenhum item com preço unitário registrado.');
 
-    // Filtramos apenas os que têm preço para garantir relevância
     final relevantItems = data.where((i) => i.value > 0).take(5).toList();
 
     return Card(

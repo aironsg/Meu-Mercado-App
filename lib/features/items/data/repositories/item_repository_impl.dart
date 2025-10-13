@@ -150,4 +150,37 @@ class ItemRepositoryImpl implements ItemRepository {
       throw Exception('Erro ao buscar a lista mais recente: $e');
     }
   }
+
+  @override
+  Future<void> updateItemInList(String listId, ItemEntity updatedItem) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception('Usuário não autenticado.');
+
+    try {
+      final listRef = _firestore.collection(_collectionPath).doc(listId);
+      final snapshot = await listRef.get();
+
+      if (!snapshot.exists) throw Exception('Lista não encontrada.');
+
+      final data = snapshot.data();
+      if (data == null) throw Exception('Dados inválidos.');
+
+      final itemsRaw = data['items'] as List<dynamic>? ?? [];
+      final List<ItemModel> items = itemsRaw
+          .map((i) => ItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
+          .toList();
+
+      final index = items.indexWhere((i) => i.id == updatedItem.id);
+      if (index == -1) throw Exception('Item não encontrado na lista.');
+
+      items[index] = ItemModel.fromMap(updatedItem.toMap());
+
+      await listRef.update({
+        'items': items.map((i) => i.toMap()).toList(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

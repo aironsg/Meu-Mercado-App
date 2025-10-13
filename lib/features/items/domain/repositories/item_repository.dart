@@ -10,4 +10,5 @@ abstract class ItemRepository {
   Future<List<ItemEntity>> getPreviousListItemsByCategory(String category);
   Future<List<Map<String, dynamic>>> getUserLists();
   Future<Map<String, dynamic>?> getLatestList();
+  Future<void> updateItemInList(String listId, ItemEntity updatedItem);
 }

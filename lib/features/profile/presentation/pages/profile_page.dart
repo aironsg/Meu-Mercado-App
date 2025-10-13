@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controller/profile_controller.dart';
 
@@ -12,16 +13,13 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  // A variável user está correta, é usada apenas para obter o UID inicial
   final user = FirebaseAuth.instance.currentUser;
 
   @override
   void initState() {
     super.initState();
-    // A chamada assíncrona com addPostFrameCallback está correta aqui
     if (user != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Correto: Carrega o perfil assim que o widget estiver pronto
         ref.read(profileControllerProvider.notifier).loadProfile(user!.uid);
       });
     }
@@ -30,20 +28,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
-    final controller = ref.read(
-      profileControllerProvider.notifier,
-    ); // Obtém o controller
+    final controller = ref.read(profileControllerProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Perfil'),
+        centerTitle: true,
         backgroundColor: AppColors.primary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => controller.signOut(), // 💡 DELEGAÇÃO
-          ),
-        ],
+        // 🚨 CORREÇÃO: Botão de retorno seguro
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Modular.to.navigate('/home'), // Navega de volta
+        ),
       ),
       body: profileState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -55,9 +51,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 GestureDetector(
-                  onTap: () => controller.updateProfilePicture(
-                    profile.uid,
-                  ), // Chamada correta
+                  onTap: () => controller.updateProfilePicture(profile.uid),
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.grey.shade300,

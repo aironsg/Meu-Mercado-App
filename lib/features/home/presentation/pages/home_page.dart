@@ -29,23 +29,24 @@ class HomePage extends ConsumerWidget {
       {
         'title': 'Perfil',
         'icon': 'assets/icons/profile.png',
-        'route': () => Modular.to.navigate('/profile'),
+        'route': () => Modular.to.pushReplacementNamed('/profile'),
       },
       {
         'title': 'Estatísticas', // Alterado de 'Histórico' para Estatísticas
         'icon': 'assets/icons/history.png',
-        'route': () =>
-            Modular.to.navigate('/history'), // Rota para nova HistoryPage
+        'route': () => Modular.to.pushReplacementNamed(
+          '/history',
+        ), // Rota para nova HistoryPage
       },
       {
         'title': 'Cadastrar Lista', // Rota de Cadastro de Item/Lista
         'icon': 'assets/icons/add_item.png',
-        'route': () => Modular.to.navigate('/item'),
+        'route': () => Modular.to.pushReplacementNamed('/item'),
       },
       {
         'title': 'Histórico', // Rota para Listagem de Listas (Tabela)
         'icon': 'assets/icons/list.png',
-        'route': () => Modular.to.navigate('/lists'),
+        'route': () => Modular.to.pushReplacementNamed('/lists'),
       },
     ];
 
@@ -53,6 +54,7 @@ class HomePage extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Meu Mercado'),
+        centerTitle: true,
         backgroundColor: AppColors.primary,
         elevation: 0,
         actions: [
@@ -62,7 +64,7 @@ class HomePage extends ConsumerWidget {
               await FirebaseAuth.instance.signOut();
               if (context.mounted) Modular.to.navigate('/login');
             },
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, size: 36),
           ),
         ],
       ),
@@ -74,6 +76,10 @@ class HomePage extends ConsumerWidget {
             // SAUDAÇÃO (TOPO)
             Row(
               children: [
+                Image.asset(
+                  'assets/images/logo_app_meu_mercado.png',
+                  height: 100,
+                ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
