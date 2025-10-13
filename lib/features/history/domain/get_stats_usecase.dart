@@ -40,6 +40,7 @@ class GetStatsUseCase {
         'categoryDistribution': {},
         'resourceHogs': [],
         'monthlyExpenses': [],
+        'allLists': [],
       };
     }
 
@@ -118,6 +119,7 @@ class GetStatsUseCase {
       'categoryDistribution': categoryMap,
       'resourceHogs': topHogs,
       'monthlyExpenses': monthlyExpenses,
+      'allLists': lists,
     };
   }
 }
