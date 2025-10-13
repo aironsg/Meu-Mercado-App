@@ -1,3 +1,5 @@
+// lib/features/history/presentation/pages/history_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +36,32 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
           colorList[categoryColors.length % colorList.length];
     }
     return categoryColors[category]!;
+  }
+
+  // Função auxiliar para formatar o rótulo do mês (Ex: Out\n2025)
+  String _formatMonthLabel(String monthYear) {
+    // Input: MM/yyyy (e.g., 10/2025)
+    try {
+      final month = int.parse(monthYear.substring(0, 2));
+      final year = monthYear.substring(3);
+      final monthNames = [
+        'Jan',
+        'Fev',
+        'Mar',
+        'Abr',
+        'Mai',
+        'Jun',
+        'Jul',
+        'Ago',
+        'Set',
+        'Out',
+        'Nov',
+        'Dez',
+      ];
+      return '${monthNames[month - 1]}\n$year';
+    } catch (e) {
+      return monthYear;
+    }
   }
 
   // Novo método para buscar dados para a comparação (Mês 1 e Mês 2)
@@ -127,8 +155,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _buildCardTitle('Total Gasto por Mês Atual'),
-                _buildMonthlyExpenseChart(monthlyExpenses),
+                _buildCardTitle('Gastos Totais'), // ✅ TÍTULO ALTERADO
+                _buildMonthlyExpenseChart(
+                  monthlyExpenses,
+                ), // ✅ GRÁFICO VERTICAL
 
                 _buildCardTitle('Distribuição por Categoria'),
                 _buildCategoryPieChart(categoryDistribution),
@@ -176,56 +206,114 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     );
   }
 
-  // 1. Gráfico de Gasto por Mês (Gráfico de Barras Simulado) - REUTILIZADO
+  // 1. Gráfico de Gasto por Mês (Gráfico de Barras Vertical) - CORRIGIDO
   Widget _buildMonthlyExpenseChart(List<MonthlyExpense> data) {
     if (data.isEmpty)
       return const Text('Dados insuficientes para gasto mensal.');
 
-    final maxTotal = data.map((e) => e.total).reduce((a, b) => a > b ? a : b);
+    // 1. Limitar aos últimos 24 meses (mais recentes)
+    final recentData = data.length > 24 ? data.sublist(data.length - 24) : data;
+
+    // 2. Encontrar o valor máximo para dimensionar as barras
+    final maxTotal = recentData.map((e) => e.total).reduce(max);
+
+    // Define a altura total do contêiner do gráfico
+    const double chartMaxHeight = 200.0;
+    // Define o espaço vertical ocupado pelo rótulo de valor (acima da barra)
+    const double textLabelHeight = 14.0;
+    const double spacingHeight = 4.0;
+    const double fixedOverhead =
+        textLabelHeight + spacingHeight; // 18.0 pixels de altura
+    // Altura efetiva restante para a barra de 100%
+    const double availableBarHeight = chartMaxHeight - fixedOverhead;
+
+    // Define a largura de cada barra para permitir a rolagem lateral
+    const double barWidth = 50.0;
 
     return Card(
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: data.map((item) {
-            final barWidthFactor = item.total / maxTotal;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 70,
-                    child: Text(
-                      item.monthYear,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: 20,
-                      alignment: Alignment.centerRight,
-                      child: FractionallySizedBox(
-                        widthFactor: barWidthFactor,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(4),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Valor máximo do eixo Y
+            Text(
+              'R\$ ${maxTotal.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+
+            // Gráfico (Barras e Valores)
+            SizedBox(
+              height: chartMaxHeight,
+              // Permite rolagem lateral
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.end, // Alinha as barras pela base
+                  children: recentData.map((item) {
+                    // ✅ CORREÇÃO: Altura da barra baseada no novo espaço disponível
+                    final barHeight = item.total > 0
+                        ? (item.total / maxTotal) * availableBarHeight
+                        : 0.0;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // Valor acima da barra
+                          if (item.total > 0)
+                            Text(
+                              'R\$ ${item.total.toStringAsFixed(0)}', // Arredonda para exibição
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.textSecondaryLight,
+                              ),
+                            ),
+                          const SizedBox(height: 4),
+                          // A Barra
+                          Container(
+                            width: barWidth - 8, // Subtrai o padding horizontal
+                            height: barHeight,
+                            decoration: BoxDecoration(
+                              color:
+                                  AppColors.purple500, // Cor primária do tema
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(4),
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'R\$ ${item.total.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
+                    );
+                  }).toList(),
+                ),
               ),
-            );
-          }).toList(),
+            ),
+            const Divider(height: 1, color: Colors.grey),
+            // Eixo X (rótulos)
+            SizedBox(
+              height: 36, // Altura fixa para os rótulos
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: recentData.map((item) {
+                    return SizedBox(
+                      width: barWidth,
+                      child: Text(
+                        _formatMonthLabel(item.monthYear),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -331,45 +419,65 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     return slices;
   }
 
-  // 3. Itens com Maior Impacto no Gasto (Itens mais "gastadores") - REUTILIZADO
+  // 3. Itens com Maior Impacto no Gasto (Itens mais "gastadores") - COM ROLAGEM
   Widget _buildResourceHogsList(List<ItemStat> data) {
     if (data.isEmpty)
       return const Text('Dados insuficientes para itens de maior impacto.');
 
     return Card(
       elevation: 4,
-      child: Column(
-        children: data.map((item) {
-          return ListTile(
-            leading: const Icon(Icons.trending_up, color: Colors.orange),
-            title: Text('${item.name} (${item.category})'),
-            subtitle: Text('Custo Total: R\$ ${item.value.toStringAsFixed(2)}'),
-          );
-        }).toList(),
+      child: ConstrainedBox(
+        // ✅ NOVO: Restrição de altura
+        constraints: const BoxConstraints(
+          maxHeight: 300.0,
+        ), // 5 ListTiles aprox.
+        child: SingleChildScrollView(
+          // ✅ NOVO: Permite rolagem
+          child: Column(
+            children: data.map((item) {
+              return ListTile(
+                leading: const Icon(Icons.trending_up, color: Colors.orange),
+                title: Text('${item.name} (${item.category})'),
+                subtitle: Text(
+                  'Custo Total: R\$ ${item.value.toStringAsFixed(2)}',
+                ),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }
 
-  // 4. Itens Mais Caros (Preço Unitário) - REUTILIZADO
+  // 4. Itens Mais Caros (Preço Unitário) - COM ROLAGEM
   Widget _buildExpensiveItemsList(List<ItemStat> data) {
     if (data.isEmpty)
       return const Text('Nenhum item com preço unitário registrado.');
 
-    final relevantItems = data.where((i) => i.value > 0).take(5).toList();
+    final allRelevantItems = data.where((i) => i.value > 0).toList();
 
     return Card(
       elevation: 4,
-      child: Column(
-        children: relevantItems.map((item) {
-          return ListTile(
-            leading: const Icon(Icons.attach_money, color: Colors.red),
-            title: Text('${item.name}'),
-            subtitle: Text(
-              'Preço Unitário: R\$ ${item.value.toStringAsFixed(2)}',
-            ),
-            trailing: Text(item.category),
-          );
-        }).toList(),
+      child: ConstrainedBox(
+        // ✅ NOVO: Restrição de altura
+        constraints: const BoxConstraints(
+          maxHeight: 300.0,
+        ), // 5 ListTiles aprox.
+        child: SingleChildScrollView(
+          // ✅ NOVO: Permite rolagem
+          child: Column(
+            children: allRelevantItems.map((item) {
+              return ListTile(
+                leading: const Icon(Icons.attach_money, color: Colors.red),
+                title: Text('${item.name}'),
+                subtitle: Text(
+                  'Preço Unitário: R\$ ${item.value.toStringAsFixed(2)}',
+                ),
+                trailing: Text(item.category),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }
@@ -469,7 +577,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
 
     final comparisonItems = allItemNames.map((name) {
       // Tenta encontrar o nome original (case-sensitive) para exibição
-      // Usa tryFirstWhere (que evita o erro de runtime)
+      // Cria a função tryFirstWhere
       ItemEntity? findItem(List<ItemEntity> list, String lowerName) {
         try {
           return list.firstWhere((i) => i.name.toLowerCase() == lowerName);
@@ -489,7 +597,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
       };
     }).toList();
 
-    // ✅ CORREÇÃO APLICADA AQUI: Cast explícito para double.
+    // Filtra itens onde pelo menos um dos preços é > 0
     final relevantItems = comparisonItems
         .where(
           (item) =>

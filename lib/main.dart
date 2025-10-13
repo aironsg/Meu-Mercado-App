@@ -9,8 +9,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // O ProviderScope precisa envolver a raiz do aplicativo (AppWidget)
-  // para que qualquer Controller ou Provider possa ser lido.
   runApp(
     ProviderScope(
       child: ModularApp(module: AppModule(), child: const AppWidget()),
