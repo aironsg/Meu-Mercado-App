@@ -1,3 +1,5 @@
+// lib/features/items/data/repositories/item_repository_impl.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/entities/item_entity.dart';
@@ -152,7 +154,8 @@ class ItemRepositoryImpl implements ItemRepository {
   }
 
   @override
-  Future<void> updateItemInList(String listId, ItemEntity updatedItem) async {
+  // 🚨 NOVO: Implementação unificada para adicionar OU editar item
+  Future<void> saveItemInList(String listId, ItemEntity itemToSave) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception('Usuário não autenticado.');
 
@@ -170,10 +173,15 @@ class ItemRepositoryImpl implements ItemRepository {
           .map((i) => ItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
           .toList();
 
-      final index = items.indexWhere((i) => i.id == updatedItem.id);
-      if (index == -1) throw Exception('Item não encontrado na lista.');
+      final index = items.indexWhere((i) => i.id == itemToSave.id);
 
-      items[index] = ItemModel.fromMap(updatedItem.toMap());
+      if (index != -1) {
+        // Atualizar item existente
+        items[index] = ItemModel.fromMap(itemToSave.toMap());
+      } else {
+        // Adicionar novo item
+        items.add(ItemModel.fromMap(itemToSave.toMap()));
+      }
 
       await listRef.update({
         'items': items.map((i) => i.toMap()).toList(),
@@ -181,6 +189,56 @@ class ItemRepositoryImpl implements ItemRepository {
       });
     } catch (e) {
       rethrow;
+    }
+  }
+
+  @override
+  // Mantém o método antigo, agora reusando a nova lógica de salvar
+  Future<void> updateItemInList(String listId, ItemEntity updatedItem) async {
+    return saveItemInList(listId, updatedItem);
+  }
+
+  @override
+  // 🚨 NOVO: Remove um item de uma lista existente
+  Future<void> removeItemFromList(String listId, String itemId) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception('Usuário não autenticado.');
+
+    try {
+      final listRef = _firestore.collection(_collectionPath).doc(listId);
+      final snapshot = await listRef.get();
+
+      if (!snapshot.exists) throw Exception('Lista não encontrada.');
+
+      final data = snapshot.data();
+      if (data == null) throw Exception('Dados inválidos.');
+
+      final itemsRaw = data['items'] as List<dynamic>? ?? [];
+      final List<ItemModel> items = itemsRaw
+          .map((i) => ItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
+          .toList();
+
+      items.removeWhere((item) => item.id == itemId);
+
+      await listRef.update({
+        'items': items.map((i) => i.toMap()).toList(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  // 🚨 NOVO: Remove uma lista completa
+  Future<void> deleteList(String listId) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception('Usuário não autenticado.');
+
+    try {
+      await _firestore.collection(_collectionPath).doc(listId).delete();
+    } catch (e) {
+      throw Exception('Erro ao deletar lista: $e');
     }
   }
 }

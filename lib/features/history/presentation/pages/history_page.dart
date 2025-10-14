@@ -1,5 +1,7 @@
 // lib/features/history/presentation/pages/history_page.dart
 
+// lib/features/history/presentation/pages/history_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,15 @@ import 'package:meu_mercado/features/history/presentation/history_providers.dart
 import 'package:meu_mercado/features/items/domain/entities/item_entity.dart';
 import 'dart:math';
 import '../../../../core/theme/app_colors.dart';
+
+// 🚨 NOVO: Imports para PDF e Compartilhamento
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
+import 'package:flutter/services.dart';
+// 🚨 FIM NOVO
 
 class HistoryPage extends ConsumerStatefulWidget {
   const HistoryPage({super.key});
@@ -95,6 +106,141 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
         _selectedMonth2!: (list2['items'] as List<ItemEntity>?) ?? [],
       };
     });
+  }
+
+  // 🚨 NOVO MÉTODO: Geração real do PDF
+  Future<Uint8List> _generateComparisonPdf(
+    List<Map<String, dynamic>> relevantItems,
+    String month1,
+    String month2,
+  ) async {
+    final pdf = pw.Document();
+
+    // Dados para a tabela PDF
+    final tableHeaders = ['Item', '$month1 (R\$)', '$month2 (R\$)', 'Variação'];
+
+    final tableData = relevantItems.map((item) {
+      final price1 = item[month1] as double;
+      final price2 = item[month2] as double;
+      final name = item['name'] as String;
+
+      String variationText = 'N/A';
+      if (price1 > 0 && price2 > 0) {
+        final diff = price2 - price1;
+        final percentage = (diff / price1) * 100;
+
+        String sign = diff >= 0 ? '+' : '';
+        variationText =
+            '${sign}R\$${diff.toStringAsFixed(2)}\n(${percentage.toStringAsFixed(1)}%)';
+      } else if (price1 > 0) {
+        variationText = 'Ausente em $month2';
+      } else if (price2 > 0) {
+        variationText = 'Novo em $month2';
+      }
+
+      return [
+        name,
+        price1.toStringAsFixed(2),
+        price2.toStringAsFixed(2),
+        variationText,
+      ];
+    }).toList();
+
+    // Adiciona o conteúdo ao PDF
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Relatório de Comparação de Preços',
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 10),
+              pw.Text('Período: $month1 vs $month2'),
+              pw.SizedBox(height: 20),
+              pw.Table.fromTextArray(
+                headers: tableHeaders,
+                data: tableData,
+                border: pw.TableBorder.all(
+                  color: PdfColors.grey500,
+                  width: 0.5,
+                ),
+                headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                ),
+                headerDecoration: const pw.BoxDecoration(
+                  color: PdfColors.blue700,
+                ),
+                cellAlignment: pw.Alignment.centerRight,
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(3), // Item Name
+                  1: const pw.FlexColumnWidth(1.5), // Price 1
+                  2: const pw.FlexColumnWidth(1.5), // Price 2
+                  3: const pw.FlexColumnWidth(2), // Variation
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  // 🚨 NOVO MÉTODO: Exportação e Compartilhamento
+  Future<void> _exportComparisonToPdf(
+    List<Map<String, dynamic>> relevantItems,
+    String month1,
+    String month2,
+  ) async {
+    try {
+      // 1. Gera o PDF em bytes
+      final pdfBytes = await _generateComparisonPdf(
+        relevantItems,
+        month1,
+        month2,
+      );
+
+      // 2. Salva o arquivo temporariamente no dispositivo
+      final output = await getTemporaryDirectory();
+      final filePath =
+          '${output.path}/comparativo_${month1.replaceAll('/', '-')}_vs_${month2.replaceAll('/', '-')}.pdf';
+      final file = File(filePath);
+      await file.writeAsBytes(pdfBytes);
+
+      // 3. Compartilha o arquivo
+      await Share.shareXFiles([
+        XFile(filePath),
+      ], text: 'Comparativo de Preços Meu Mercado ($month1 vs $month2)');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Relatório PDF compartilhado com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao gerar/compartilhar PDF: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -536,7 +682,11 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                 (_selectedMonth1 != null &&
                     _selectedMonth2 != null &&
                     _selectedMonth1 != _selectedMonth2)
-                ? () => _runComparison(allLists)
+                ? () {
+                    // Limpa o estado da comparação antes de rodar
+                    setState(() => _comparisonData = {});
+                    _runComparison(allLists);
+                  }
                 : null,
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 50),
@@ -627,6 +777,26 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
         const SizedBox(height: 24),
         _buildCardTitle('Comparação Visual (Preço por Item)'),
         _buildBarChartComparison(relevantItems, month1, month2),
+
+        // ✅ NOVO: BOTÃO DE EXPORTAÇÃO (Regra de Negócio Implementada)
+        const SizedBox(height: 32),
+        ElevatedButton.icon(
+          onPressed: () =>
+              _exportComparisonToPdf(relevantItems, month1, month2),
+          icon: const Icon(Icons.picture_as_pdf, color: AppColors.white),
+          label: const Text(
+            'Exportar Comparativo para PDF',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 50),
+            backgroundColor: AppColors.error, // Usando uma cor de destaque
+            foregroundColor: AppColors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
       ],
     );
   }

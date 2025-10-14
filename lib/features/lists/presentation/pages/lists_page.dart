@@ -1,3 +1,5 @@
+// lib/features/lists/presentation/pages/lists_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import 'package:meu_mercado/features/items/domain/entities/item_entity.dart';
 import 'package:meu_mercado/features/lists/presentation/controller/list_controller.dart';
 import 'package:meu_mercado/features/lists/presentation/pages/item_card.dart';
 import 'package:meu_mercado/features/lists/presentation/provider/lists_provider.dart';
+import 'package:uuid/uuid.dart'; // 🚨 NOVO: Para criar IDs para novos itens
 
 class ListPage extends ConsumerStatefulWidget {
   const ListPage({super.key});
@@ -20,11 +23,170 @@ class _ListPageState extends ConsumerState<ListPage> {
   String? _editingListId;
   bool _isUpdating = false;
 
+  // 🚨 NOVO: Flag para saber se estamos ADICIONANDO um novo item
+  bool _isAddingNewItem = false;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
       ref.read(listControllerProvider.notifier).loadLists();
+    });
+  }
+
+  // 🚨 NOVO: Função para confirmar e deletar a lista
+  Future<void> _confirmAndDeleteList(
+    ListController controller,
+    String listId,
+    String dateString,
+  ) async {
+    final bool confirm =
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Excluir Lista'),
+            content: Text(
+              'Tem certeza que deseja excluir a lista de compras de $dateString? Esta ação é irreversível.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text(
+                  'Excluir',
+                  style: TextStyle(color: AppColors.danger),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (confirm) {
+      setState(() => _isUpdating = true);
+      final success = await controller.deleteShoppingList(listId);
+      if (mounted) {
+        setState(() => _isUpdating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Lista excluída com sucesso!'
+                  : 'Erro ao excluir a lista!',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // 🚨 NOVO: Função para confirmar e remover um item
+  Future<void> _confirmAndRemoveItem(
+    ListController controller,
+    String listId,
+    ItemEntity item,
+  ) async {
+    final bool confirm =
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Remover Item'),
+            content: Text(
+              'Tem certeza que deseja remover o item "${item.name}" desta lista?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text(
+                  'Remover',
+                  style: TextStyle(color: AppColors.danger),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (confirm) {
+      setState(() => _isUpdating = true);
+      final success = await controller.removeItemFromHistoryList(
+        listId: listId,
+        itemId: item.id,
+      );
+      if (mounted) {
+        setState(() => _isUpdating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Item removido com sucesso!'
+                  : 'Erro ao remover o item!',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // 🚨 NOVO: Função que será passada para o ItemCard para salvar (adicionar/editar)
+  Future<void> _saveItemCallback(
+    ListController controller,
+    String listId,
+    ItemEntity itemToSave,
+  ) async {
+    setState(() => _isUpdating = true);
+    final isNew = _isAddingNewItem;
+
+    // A chamada do controller agora lida com ADD ou UPDATE
+    final success = await controller.saveItemInHistoryList(
+      listId: listId,
+      itemToSave: itemToSave,
+    );
+
+    if (mounted) {
+      setState(() => _isUpdating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Item ${isNew ? 'adicionado' : 'atualizado'} com sucesso!'
+                : 'Erro ao salvar o item!',
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+
+      // Fecha o card e reseta o estado de edição
+      setState(() {
+        _editingItem = null;
+        _editingListId = null;
+        _isAddingNewItem = false;
+      });
+    }
+  }
+
+  // 🚨 NOVO: Define um novo item (template) para o modal de adição
+  void _startAddItem(String listId) {
+    setState(() {
+      _editingListId = listId;
+      _isAddingNewItem = true;
+      // Cria uma entidade ItemEntity vazia, mas com um ID novo
+      _editingItem = ItemEntity.create(
+        name: '',
+        category: 'GERAIS', // Valor padrão
+        quantity: 1,
+        price: 0.0,
+        note: '',
+      );
     });
   }
 
@@ -47,7 +209,7 @@ class _ListPageState extends ConsumerState<ListPage> {
         children: [
           RefreshIndicator(
             onRefresh: controller.loadLists,
-            child: state.loading
+            child: state.loading && state.lists.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : state.error != null
                 ? Center(child: Text('Erro: ${state.error}'))
@@ -68,7 +230,7 @@ class _ListPageState extends ConsumerState<ListPage> {
                   ),
           ),
 
-          // Overlay do ItemCard
+          // Overlay do ItemCard (Modal para Adição/Edição)
           if (_editingItem != null && _editingListId != null)
             Positioned.fill(
               child: Container(
@@ -82,39 +244,19 @@ class _ListPageState extends ConsumerState<ListPage> {
                       padding: const EdgeInsets.all(16.0),
                       child: ItemCard(
                         item: _editingItem!,
-                        onSave: (updatedItem) async {
-                          setState(() => _isUpdating = true);
-                          final success = await ref
-                              .read(listControllerProvider.notifier)
-                              .updateItemInHistoryList(
-                                listId: _editingListId!,
-                                updatedItem: updatedItem,
-                              );
-
-                          if (mounted) {
-                            setState(() => _isUpdating = false);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  success
-                                      ? 'Item atualizado com sucesso!'
-                                      : 'Erro ao atualizar o item!',
-                                ),
-                                backgroundColor: success
-                                    ? Colors.green
-                                    : Colors.red,
-                              ),
-                            );
-
-                            // Fecha o card e recarrega listas
-                            setState(() {
-                              _editingItem = null;
-                              _editingListId = null;
-                            });
-                            await ref
-                                .read(listControllerProvider.notifier)
-                                .loadLists();
-                          }
+                        isNewItem: _isAddingNewItem, // 🚨 NOVO
+                        onSave: (updatedItem) => _saveItemCallback(
+                          controller,
+                          _editingListId!,
+                          updatedItem,
+                        ),
+                        onCancel: () {
+                          // 🚨 NOVO: Reseta o estado ao cancelar
+                          setState(() {
+                            _editingItem = null;
+                            _editingListId = null;
+                            _isAddingNewItem = false;
+                          });
                         },
                       ),
                     ),
@@ -170,7 +312,28 @@ class _ListPageState extends ConsumerState<ListPage> {
       margin: const EdgeInsets.only(bottom: 16),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: const Icon(Icons.shopping_basket, color: Colors.green),
+        leading: Row(
+          // 🚨 NOVO: Botões de Ação na Lista (Adicionar e Deletar Lista)
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(
+                Icons.add_circle_outline,
+                color: AppColors.success,
+              ),
+              onPressed: () =>
+                  _startAddItem(listId), // Inicia o fluxo de adição
+              tooltip: 'Adicionar Item',
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.delete_forever, color: AppColors.danger),
+              onPressed: () =>
+                  _confirmAndDeleteList(controller, listId, dateString),
+              tooltip: 'Excluir Lista',
+            ),
+          ],
+        ),
         title: Text(
           'Lista de Compras: $dateString',
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -196,11 +359,23 @@ class _ListPageState extends ConsumerState<ListPage> {
                 IconButton(
                   icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
                   onPressed: () {
+                    // Inicia o fluxo de edição
                     setState(() {
                       _editingItem = item;
                       _editingListId = listId;
+                      _isAddingNewItem = false;
                     });
                   },
+                ),
+                // 🚨 NOVO: Botão de exclusão de item
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete,
+                    size: 20,
+                    color: AppColors.danger,
+                  ),
+                  onPressed: () =>
+                      _confirmAndRemoveItem(controller, listId, item),
                 ),
               ],
             ),
