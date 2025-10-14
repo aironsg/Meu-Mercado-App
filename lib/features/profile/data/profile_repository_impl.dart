@@ -1,3 +1,5 @@
+// lib/features/profile/data/profile_repository_impl.dart
+
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -26,7 +28,8 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<void> uploadProfilePicture(String uid, String imagePath) async {
+  // ✅ ALTERADO: Retorna a URL como String
+  Future<String> uploadProfilePicture(String uid, String imagePath) async {
     final ref = _storage.ref().child('profile_pictures/$uid.jpg');
     await ref.putFile(File(imagePath));
     final downloadUrl = await ref.getDownloadURL();
@@ -36,5 +39,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
     });
 
     await _auth.currentUser?.updatePhotoURL(downloadUrl);
+
+    return downloadUrl; // ✅ Retorna a URL
   }
 }

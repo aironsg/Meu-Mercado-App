@@ -54,9 +54,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAdMPEOXgnkgO75dfz2xxwzMgpjUExAPX8',
-    appId: '1:96653741607:android:1ab72ee650ebd46a354802',
+    appId: '1:96653741607:android:bd84dda1ff938f49354802',
     messagingSenderId: '96653741607',
     projectId: 'meu-mercado-6da4a',
     storageBucket: 'meu-mercado-6da4a.firebasestorage.app',
   );
+
 }

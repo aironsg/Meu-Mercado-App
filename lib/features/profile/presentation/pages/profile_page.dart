@@ -38,7 +38,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         // 🚨 CORREÇÃO: Botão de retorno seguro
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Modular.to.navigate('/home'), // Navega de volta
+          onPressed: () => Modular.to.navigate('/home'),
         ),
       ),
       body: profileState.when(

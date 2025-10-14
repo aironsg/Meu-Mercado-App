@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/usecases/register_usecase.dart';
 import '../../../data/repository/auth_repository_provider.dart';
@@ -28,7 +29,7 @@ class RegisterController extends StateNotifier<RegisterState> {
     try {
       await _useCase.registerWithEmail(name, email, password);
       if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Modular.to.pushReplacementNamed('/home');
       }
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -43,10 +44,7 @@ class RegisterController extends StateNotifier<RegisterState> {
       final user = await _useCase.executeGoogle();
       if (user != null) {
         state = state.copyWith(user: user, loading: false);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
+        Modular.to.pushReplacementNamed('/home');
       }
     } catch (e) {
       state = state.copyWith(error: e.toString(), loading: false);

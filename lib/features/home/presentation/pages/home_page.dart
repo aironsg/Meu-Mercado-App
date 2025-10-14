@@ -29,24 +29,23 @@ class HomePage extends ConsumerWidget {
       {
         'title': 'Perfil',
         'icon': 'assets/icons/profile.png',
-        'route': () => Modular.to.pushReplacementNamed('/profile'),
+        'route': () => Modular.to.pushNamed('/profile'),
       },
       {
         'title': 'Estatísticas', // Alterado de 'Histórico' para Estatísticas
         'icon': 'assets/icons/history.png',
-        'route': () => Modular.to.pushReplacementNamed(
-          '/history',
-        ), // Rota para nova HistoryPage
+        'route': () =>
+            Modular.to.pushNamed('/history'), // Rota para nova HistoryPage
       },
       {
         'title': 'Cadastrar Lista', // Rota de Cadastro de Item/Lista
         'icon': 'assets/icons/add_item.png',
-        'route': () => Modular.to.pushReplacementNamed('/item'),
+        'route': () => Modular.to.pushNamed('/item'),
       },
       {
         'title': 'Histórico', // Rota para Listagem de Listas (Tabela)
         'icon': 'assets/icons/list.png',
-        'route': () => Modular.to.pushReplacementNamed('/lists'),
+        'route': () => Modular.to.pushNamed('/lists'),
       },
     ];
 

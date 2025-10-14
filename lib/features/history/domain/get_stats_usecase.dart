@@ -1,3 +1,5 @@
+// lib/features/history/domain/get_stats_usecase.dart
+
 import 'package:intl/intl.dart';
 import 'package:meu_mercado/features/items/domain/entities/item_entity.dart';
 import 'package:meu_mercado/features/items/domain/repositories/item_repository.dart';
@@ -35,12 +37,15 @@ class GetStatsUseCase {
     final lists = await repository.getUserLists();
 
     if (lists.isEmpty) {
+      // ✅ CORREÇÃO CRÍTICA: Retorna listas vazias com tipo explícito
+      // para evitar o erro de cast List<dynamic> na HistoryPage.
       return {
-        'expensiveItems': [],
-        'categoryDistribution': {},
-        'resourceHogs': [],
-        'monthlyExpenses': [],
-        'allLists': [],
+        'expensiveItems': <ItemStat>[],
+        'categoryDistribution': <String, double>{},
+        'resourceHogs': <ItemStat>[],
+        'monthlyExpenses': <MonthlyExpense>[],
+        'allLists':
+            <Map<String, dynamic>>[], // Incluído para o recurso de comparação
       };
     }
 
@@ -83,7 +88,13 @@ class GetStatsUseCase {
             .map(
               (e) => ItemStat(
                 name: e.key,
-                category: allItems.firstWhere((i) => i.name == e.key).category,
+                // Certifica-se de que há um fallback seguro para a categoria
+                category: allItems
+                    .firstWhere(
+                      (i) => i.name == e.key,
+                      orElse: () => allItems.first, // Fallback simples
+                    )
+                    .category,
                 value: e.value,
                 quantity: 0, // Não aplicável para este cálculo agregado
               ),
@@ -119,7 +130,7 @@ class GetStatsUseCase {
       'categoryDistribution': categoryMap,
       'resourceHogs': topHogs,
       'monthlyExpenses': monthlyExpenses,
-      'allLists': lists,
+      'allLists': lists, // Inclui para o recurso de comparação
     };
   }
 }

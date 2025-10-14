@@ -1,3 +1,5 @@
+// lib/features/profile/domain/entities/user_profile.dart
+
 class UserProfile {
   final String uid;
   final String name;
@@ -22,5 +24,19 @@ class UserProfile {
 
   Map<String, dynamic> toMap() {
     return {'name': name, 'email': email, 'photoUrl': photoUrl};
+  }
+
+  UserProfile copyWith({
+    String? uid,
+    String? name,
+    String? email,
+    String? photoUrl,
+  }) {
+    return UserProfile(
+      uid: uid ?? this.uid,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      photoUrl: photoUrl ?? this.photoUrl,
+    );
   }
 }

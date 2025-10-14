@@ -7,12 +7,25 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:96653741607:android:1ab72ee650ebd46a354802",
+        "mobilesdk_app_id": "1:96653741607:android:bd84dda1ff938f49354802",
         "android_client_info": {
-          "package_name": "com.example.meu_mercado"
+          "package_name": "com.meumercado.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "96653741607-j2rf69qiels53nd1cnkr67fiarom05h7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meumercado.app",
+            "certificate_hash": "8027c04db1c26e3fc7eb67d6be3e1ff9599b2bb5"
+          }
+        },
+        {
+          "client_id": "96653741607-hj89c68kegj0duiqfa0j8fa6kqohumcq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAdMPEOXgnkgO75dfz2xxwzMgpjUExAPX8"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "96653741607-hj89c68kegj0duiqfa0j8fa6kqohumcq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -42,10 +42,7 @@ class LoginController extends StateNotifier<LoginState> {
       final user = await _useCase.executeGoogle();
       if (user != null) {
         state = state.copyWith(user: user, loading: false);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
+        Modular.to.pushReplacementNamed('/home');
       }
     } catch (e) {
       state = state.copyWith(error: e.toString(), loading: false);

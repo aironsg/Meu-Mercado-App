@@ -40,7 +40,7 @@ class _ListPageState extends ConsumerState<ListPage> {
         backgroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Modular.to.pushNamed("/home"),
+          onPressed: () => Modular.to.navigate("/home"),
         ),
       ),
       body: Stack(
