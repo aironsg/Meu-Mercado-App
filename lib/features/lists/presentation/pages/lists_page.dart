@@ -5,6 +5,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:meu_mercado/core/theme/app_colors.dart';
+import 'package:meu_mercado/core/widgets/app_background.dart';
 import 'package:meu_mercado/features/items/domain/entities/item_entity.dart';
 import 'package:meu_mercado/features/lists/presentation/controller/list_controller.dart';
 import 'package:meu_mercado/features/lists/presentation/pages/item_card.dart';
@@ -205,86 +206,89 @@ class _ListPageState extends ConsumerState<ListPage> {
           onPressed: () => Modular.to.navigate("/home"),
         ),
       ),
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: controller.loadLists,
-            child: state.loading && state.lists.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : state.error != null
-                ? Center(child: Text('Erro: ${state.error}'))
-                : state.lists.isEmpty
-                ? const Center(
-                    child: Text(
-                      'Nenhuma lista encontrada.\nCrie sua primeira lista!',
-                      textAlign: TextAlign.center,
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: controller.loadLists,
+              child: state.loading && state.lists.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.error != null
+                  ? Center(child: Text('Erro: ${state.error}'))
+                  : state.lists.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Nenhuma lista encontrada.\nCrie sua primeira lista!',
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: state.lists.length,
+                      itemBuilder: (context, index) {
+                        final listData = state.lists[index];
+                        return _buildListCard(context, controller, listData);
+                      },
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: state.lists.length,
-                    itemBuilder: (context, index) {
-                      final listData = state.lists[index];
-                      return _buildListCard(context, controller, listData);
-                    },
-                  ),
-          ),
+            ),
 
-          // Overlay do ItemCard (Modal para Adição/Edição)
-          if (_editingItem != null && _editingListId != null)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black54,
-                alignment: Alignment.center,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: ItemCard(
-                        item: _editingItem!,
-                        isNewItem: _isAddingNewItem, // 🚨 NOVO
-                        onSave: (updatedItem) => _saveItemCallback(
-                          controller,
-                          _editingListId!,
-                          updatedItem,
+            // Overlay do ItemCard (Modal para Adição/Edição)
+            if (_editingItem != null && _editingListId != null)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black54,
+                  alignment: Alignment.center,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: ItemCard(
+                          item: _editingItem!,
+                          isNewItem: _isAddingNewItem, // 🚨 NOVO
+                          onSave: (updatedItem) => _saveItemCallback(
+                            controller,
+                            _editingListId!,
+                            updatedItem,
+                          ),
+                          onCancel: () {
+                            // 🚨 NOVO: Reseta o estado ao cancelar
+                            setState(() {
+                              _editingItem = null;
+                              _editingListId = null;
+                              _isAddingNewItem = false;
+                            });
+                          },
                         ),
-                        onCancel: () {
-                          // 🚨 NOVO: Reseta o estado ao cancelar
-                          setState(() {
-                            _editingItem = null;
-                            _editingListId = null;
-                            _isAddingNewItem = false;
-                          });
-                        },
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-          if (_isUpdating)
-            const Positioned.fill(
-              child: ColoredBox(
-                color: Colors.black26,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      LinearProgressIndicator(),
-                      SizedBox(height: 12),
-                      Text(
-                        'Salvando alterações...',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
+            if (_isUpdating)
+              const Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black26,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        LinearProgressIndicator(),
+                        SizedBox(height: 12),
+                        Text(
+                          'Salvando alterações...',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

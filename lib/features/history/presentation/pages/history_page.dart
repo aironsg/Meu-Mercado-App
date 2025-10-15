@@ -1,7 +1,5 @@
 // lib/features/history/presentation/pages/history_page.dart
 
-// lib/features/history/presentation/pages/history_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,15 +8,15 @@ import 'package:meu_mercado/features/history/presentation/history_providers.dart
 import 'package:meu_mercado/features/items/domain/entities/item_entity.dart';
 import 'dart:math';
 import '../../../../core/theme/app_colors.dart';
-
-// 🚨 NOVO: Imports para PDF e Compartilhamento
+// 🚨 NOVO: Importa o widget de background reutilizável
+import '../../../../core/widgets/app_background.dart';
+// Imports para PDF e Compartilhamento (MANTIDOS)
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
-// 🚨 FIM NOVO
 
 class HistoryPage extends ConsumerStatefulWidget {
   const HistoryPage({super.key});
@@ -30,9 +28,21 @@ class HistoryPage extends ConsumerStatefulWidget {
 class _HistoryPageState extends ConsumerState<HistoryPage> {
   String? _selectedMonth1;
   String? _selectedMonth2;
+  // 🚨 NOVO: Filtro de categoria para a comparação
+  String? _selectedCategory;
   Map<String, List<ItemEntity>> _comparisonData = {};
 
   final Map<String, Color> categoryColors = {};
+
+  // 🚨 NOVO: Lista de categorias disponíveis (deve ser a mesma do ItemPage)
+  final List<String> _categories = [
+    'MERCADO',
+    'FEIRA',
+    'ROUPAS',
+    'CASA',
+    'GERAIS',
+  ];
+
   Color _getColorForCategory(String category) {
     if (!categoryColors.containsKey(category)) {
       final colorList = [
@@ -77,7 +87,13 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
 
   // Novo método para buscar dados para a comparação (Mês 1 e Mês 2)
   Future<void> _runComparison(List<Map<String, dynamic>> allLists) async {
-    if (_selectedMonth1 == null || _selectedMonth2 == null) return;
+    // 🚨 ATUALIZADO: A comparação agora requer a categoria
+    if (_selectedMonth1 == null ||
+        _selectedMonth2 == null ||
+        _selectedCategory == null)
+      return;
+
+    final filterCategory = _selectedCategory;
 
     // Converte a data da lista (Timestamp/DateTime) para o formato 'MM/yyyy'
     String _getMonthYear(Map<String, dynamic> list) {
@@ -85,6 +101,12 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
       return date != null
           ? '${date.month.toString().padLeft(2, '0')}/${date.year}'
           : '';
+    }
+
+    // Função auxiliar para filtrar itens pela categoria selecionada
+    List<ItemEntity> _filterItemsByCategory(Map<String, dynamic> list) {
+      final items = (list['items'] as List<ItemEntity>?) ?? [];
+      return items.where((item) => item.category == filterCategory).toList();
     }
 
     // Busca a lista completa (com itens) para o Mês 1
@@ -100,15 +122,15 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     );
 
     setState(() {
-      // Filtra os itens da lista 1 e 2
+      // 🚨 ATUALIZADO: Filtra os itens da lista 1 e 2 pela categoria
       _comparisonData = {
-        _selectedMonth1!: (list1['items'] as List<ItemEntity>?) ?? [],
-        _selectedMonth2!: (list2['items'] as List<ItemEntity>?) ?? [],
+        _selectedMonth1!: _filterItemsByCategory(list1),
+        _selectedMonth2!: _filterItemsByCategory(list2),
       };
     });
   }
 
-  // 🚨 NOVO MÉTODO: Geração real do PDF
+  // Geração real do PDF (MANTIDO)
   Future<Uint8List> _generateComparisonPdf(
     List<Map<String, dynamic>> relevantItems,
     String month1,
@@ -155,9 +177,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Text(
-                'Relatório de Comparação de Preços',
+                'Relatório de Comparação de Preços (Categoria: $_selectedCategory)',
                 style: pw.TextStyle(
-                  fontSize: 24,
+                  fontSize: 20,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
@@ -195,31 +217,30 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     return pdf.save();
   }
 
-  // 🚨 NOVO MÉTODO: Exportação e Compartilhamento
+  // Exportação e Compartilhamento (MANTIDO)
   Future<void> _exportComparisonToPdf(
     List<Map<String, dynamic>> relevantItems,
     String month1,
     String month2,
   ) async {
     try {
-      // 1. Gera o PDF em bytes
       final pdfBytes = await _generateComparisonPdf(
         relevantItems,
         month1,
         month2,
       );
 
-      // 2. Salva o arquivo temporariamente no dispositivo
       final output = await getTemporaryDirectory();
       final filePath =
-          '${output.path}/comparativo_${month1.replaceAll('/', '-')}_vs_${month2.replaceAll('/', '-')}.pdf';
+          '${output.path}/comparativo_${month1.replaceAll('/', '-')}_vs_${month2.replaceAll('/', '-')}_$_selectedCategory.pdf';
       final file = File(filePath);
       await file.writeAsBytes(pdfBytes);
 
-      // 3. Compartilha o arquivo
-      await Share.shareXFiles([
-        XFile(filePath),
-      ], text: 'Comparativo de Preços Meu Mercado ($month1 vs $month2)');
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text:
+            'Comparativo de Preços Meu Mercado ($month1 vs $month2 - $_selectedCategory)',
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -248,6 +269,8 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     final statsAsync = ref.watch(statsProvider);
 
     return Scaffold(
+      // 🚨 UX/UI: Fundo transparente para o AppBackground
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Análise de Compras'),
         centerTitle: true,
@@ -257,86 +280,98 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
           onPressed: () => Modular.to.navigate("/home"),
         ),
       ),
-      body: statsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Erro ao carregar estatísticas. Tente novamente.\n${e.toString()}',
-              textAlign: TextAlign.center,
+      // 🚨 UX/UI: Aplica o AppBackground
+      body: AppBackground(
+        child: statsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, s) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Erro ao carregar estatísticas. Tente novamente.\n${e.toString()}',
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
-        ),
-        data: (stats) {
-          final List<ItemStat> resourceHogs =
-              stats['resourceHogs'] as List<ItemStat>;
-          final Map<String, double> categoryDistribution =
-              stats['categoryDistribution'] as Map<String, double>;
-          final List<MonthlyExpense> monthlyExpenses =
-              stats['monthlyExpenses'] as List<MonthlyExpense>;
-          final List<Map<String, dynamic>> allLists =
-              stats['allLists'] as List<Map<String, dynamic>>? ?? [];
+          data: (stats) {
+            final List<ItemStat> resourceHogs =
+                stats['resourceHogs'] as List<ItemStat>;
+            final Map<String, double> categoryDistribution =
+                stats['categoryDistribution'] as Map<String, double>;
+            final List<MonthlyExpense> monthlyExpenses =
+                stats['monthlyExpenses'] as List<MonthlyExpense>;
+            final List<Map<String, dynamic>> allLists =
+                stats['allLists'] as List<Map<String, dynamic>>? ?? [];
 
-          // Obtém a lista de meses únicos no formato 'MM/yyyy'
-          final List<String> availableMonths = monthlyExpenses
-              .map((e) => e.monthYear)
-              .toSet()
-              .toList();
-          availableMonths.sort();
+            // Obtém a lista de meses únicos no formato 'MM/yyyy'
+            final List<String> availableMonths = monthlyExpenses
+                .map((e) => e.monthYear)
+                .toSet()
+                .toList();
+            availableMonths.sort();
 
-          // Inicializa os meses de comparação
-          if (_selectedMonth1 == null && availableMonths.isNotEmpty) {
-            _selectedMonth1 = availableMonths.last; // Mês atual ou mais recente
-          }
-          if (_selectedMonth2 == null && availableMonths.length > 1) {
-            _selectedMonth2 =
-                availableMonths[availableMonths.length - 2]; // Mês anterior
-          } else if (_selectedMonth2 == null && availableMonths.isNotEmpty) {
-            _selectedMonth2 = availableMonths.first;
-          }
+            // Inicializa os meses de comparação
+            if (_selectedMonth1 == null && availableMonths.isNotEmpty) {
+              _selectedMonth1 =
+                  availableMonths.last; // Mês atual ou mais recente
+            }
+            if (_selectedMonth2 == null && availableMonths.length > 1) {
+              _selectedMonth2 =
+                  availableMonths[availableMonths.length - 2]; // Mês anterior
+            } else if (_selectedMonth2 == null && availableMonths.isNotEmpty) {
+              _selectedMonth2 = availableMonths.first;
+            }
+            // Inicializa a categoria
+            if (_selectedCategory == null) {
+              _selectedCategory = _categories.first;
+            }
 
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(statsProvider.future),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildCardTitle('Gastos Totais'), // ✅ TÍTULO ALTERADO
-                _buildMonthlyExpenseChart(
-                  monthlyExpenses,
-                ), // ✅ GRÁFICO VERTICAL
+            return RefreshIndicator(
+              onRefresh: () => ref.refresh(statsProvider.future),
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildCardTitle('Gastos Totais'),
+                  _buildMonthlyExpenseChart(monthlyExpenses),
 
-                _buildCardTitle('Distribuição por Categoria'),
-                _buildCategoryPieChart(categoryDistribution),
+                  _buildCardTitle('Distribuição por Categoria'),
+                  _buildCategoryPieChart(categoryDistribution),
 
-                _buildCardTitle('Itens que Mais Consomem (Custo Total)'),
-                _buildResourceHogsList(resourceHogs),
+                  _buildCardTitle('Itens que Mais Consomem (Custo Total)'),
+                  _buildResourceHogsList(resourceHogs),
 
-                _buildCardTitle('Itens Mais Caros (Preço Unitário)'),
-                _buildExpensiveItemsList(
-                  stats['expensiveItems'] as List<ItemStat>,
-                ),
-
-                const SizedBox(height: 24),
-                const Divider(color: AppColors.primary, thickness: 2),
-                _buildCardTitle('Comparativo de Preços Mês a Mês'),
-                _buildComparisonControls(availableMonths, allLists),
-
-                if (_comparisonData.isNotEmpty)
-                  _buildComparisonResults(
-                    _comparisonData,
-                    _selectedMonth1!,
-                    _selectedMonth2!,
+                  _buildCardTitle('Itens Mais Caros (Preço Unitário)'),
+                  _buildExpensiveItemsList(
+                    stats['expensiveItems'] as List<ItemStat>,
                   ),
-              ],
-            ),
-          );
-        },
+
+                  const SizedBox(height: 24),
+                  const Divider(color: AppColors.primary, thickness: 2),
+                  _buildCardTitle('Comparativo de Preços Mês a Mês'),
+                  // 🚨 ATUALIZADO: Passa as listas de meses e a lista de dados
+                  _buildComparisonControls(availableMonths, allLists),
+
+                  if (_comparisonData.isNotEmpty)
+                    _buildComparisonResults(
+                      _comparisonData,
+                      _selectedMonth1!,
+                      _selectedMonth2!,
+                    ),
+
+                  // 🚨 UX/UI: Espaçamento de segurança no final do ListView
+                  SizedBox(
+                    height: MediaQuery.of(context).padding.bottom + 16.0,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  // --- Widgets de Gráficos e Listas ---
+  // --- Widgets de Gráficos e Listas (MANTIDOS) ---
 
   Widget _buildCardTitle(String title) {
     return Padding(
@@ -352,7 +387,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     );
   }
 
-  // 1. Gráfico de Gasto por Mês (Gráfico de Barras Vertical) - CORRIGIDO
+  // 1. Gráfico de Gasto por Mês (Gráfico de Barras Vertical)
   Widget _buildMonthlyExpenseChart(List<MonthlyExpense> data) {
     if (data.isEmpty)
       return const Text('Dados insuficientes para gasto mensal.');
@@ -365,15 +400,11 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
 
     // Define a altura total do contêiner do gráfico
     const double chartMaxHeight = 200.0;
-    // Define o espaço vertical ocupado pelo rótulo de valor (acima da barra)
     const double textLabelHeight = 14.0;
     const double spacingHeight = 4.0;
-    const double fixedOverhead =
-        textLabelHeight + spacingHeight; // 18.0 pixels de altura
-    // Altura efetiva restante para a barra de 100%
+    const double fixedOverhead = textLabelHeight + spacingHeight;
     const double availableBarHeight = chartMaxHeight - fixedOverhead;
 
-    // Define a largura de cada barra para permitir a rolagem lateral
     const double barWidth = 50.0;
 
     return Card(
@@ -400,7 +431,6 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                   crossAxisAlignment:
                       CrossAxisAlignment.end, // Alinha as barras pela base
                   children: recentData.map((item) {
-                    // ✅ CORREÇÃO: Altura da barra baseada no novo espaço disponível
                     final barHeight = item.total > 0
                         ? (item.total / maxTotal) * availableBarHeight
                         : 0.0;
@@ -573,12 +603,8 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     return Card(
       elevation: 4,
       child: ConstrainedBox(
-        // ✅ NOVO: Restrição de altura
-        constraints: const BoxConstraints(
-          maxHeight: 300.0,
-        ), // 5 ListTiles aprox.
+        constraints: const BoxConstraints(maxHeight: 300.0),
         child: SingleChildScrollView(
-          // ✅ NOVO: Permite rolagem
           child: Column(
             children: data.map((item) {
               return ListTile(
@@ -605,12 +631,8 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     return Card(
       elevation: 4,
       child: ConstrainedBox(
-        // ✅ NOVO: Restrição de altura
-        constraints: const BoxConstraints(
-          maxHeight: 300.0,
-        ), // 5 ListTiles aprox.
+        constraints: const BoxConstraints(maxHeight: 300.0),
         child: SingleChildScrollView(
-          // ✅ NOVO: Permite rolagem
           child: Column(
             children: allRelevantItems.map((item) {
               return ListTile(
@@ -633,10 +655,34 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     List<String> availableMonths,
     List<Map<String, dynamic>> allLists,
   ) {
+    // Flag para desabilitar o botão de comparação se faltar seleção
+    final bool isComparisonEnabled =
+        (_selectedMonth1 != null &&
+        _selectedMonth2 != null &&
+        _selectedMonth1 != _selectedMonth2 &&
+        _selectedCategory != null);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Column(
         children: [
+          // 🚨 NOVO: Dropdown de Categoria
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Categoria para Comparação',
+              border: OutlineInputBorder(),
+            ),
+            value: _selectedCategory,
+            items: _categories
+                .map(
+                  (category) =>
+                      DropdownMenuItem(value: category, child: Text(category)),
+                )
+                .toList(),
+            onChanged: (newValue) =>
+                setState(() => _selectedCategory = newValue),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -678,10 +724,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed:
-                (_selectedMonth1 != null &&
-                    _selectedMonth2 != null &&
-                    _selectedMonth1 != _selectedMonth2)
+            onPressed: isComparisonEnabled
                 ? () {
                     // Limpa o estado da comparação antes de rodar
                     setState(() => _comparisonData = {});
@@ -712,7 +755,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     final List<ItemEntity> items1 = data[month1] ?? [];
     final List<ItemEntity> items2 = data[month2] ?? [];
 
-    // 1. Coletar todos os nomes únicos de itens para a comparação no gráfico
+    // 1. Coletar todos os nomes únicos de itens para a comparação
     final Set<String> allItemNames = {
       ...items1.map((i) => i.name.toLowerCase()),
       ...items2.map((i) => i.name.toLowerCase()),
@@ -726,8 +769,6 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     };
 
     final comparisonItems = allItemNames.map((name) {
-      // Tenta encontrar o nome original (case-sensitive) para exibição
-      // Cria a função tryFirstWhere
       ItemEntity? findItem(List<ItemEntity> list, String lowerName) {
         try {
           return list.firstWhere((i) => i.name.toLowerCase() == lowerName);
@@ -756,9 +797,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
         .toList();
 
     if (relevantItems.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Nenhum item com preço disponível para comparação nos meses selecionados.',
+          'Nenhum item da categoria "$_selectedCategory" com preço disponível para comparação nos meses selecionados.',
+          textAlign: TextAlign.center,
         ),
       );
     }
@@ -778,7 +820,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
         _buildCardTitle('Comparação Visual (Preço por Item)'),
         _buildBarChartComparison(relevantItems, month1, month2),
 
-        // ✅ NOVO: BOTÃO DE EXPORTAÇÃO (Regra de Negócio Implementada)
+        // BOTÃO DE EXPORTAÇÃO
         const SizedBox(height: 32),
         ElevatedButton.icon(
           onPressed: () =>
@@ -790,7 +832,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
           ),
           style: ElevatedButton.styleFrom(
             minimumSize: const Size(double.infinity, 50),
-            backgroundColor: AppColors.error, // Usando uma cor de destaque
+            backgroundColor: AppColors.error,
             foregroundColor: AppColors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -801,7 +843,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     );
   }
 
-  // Tabela de Preços Simples para uma Lista
+  // Tabela de Preços Simples para uma Lista (MANTIDO)
   Widget _buildPriceTable(List<ItemEntity> items) {
     if (items.isEmpty) return const Text('Nenhum item nesta lista.');
 
@@ -874,7 +916,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     );
   }
 
-  // Gráfico de Barras para Comparação de Preços Item a Item
+  // Gráfico de Barras para Comparação de Preços Item a Item (MANTIDO)
   Widget _buildBarChartComparison(
     List<Map<String, dynamic>> comparisonItems,
     String month1,
@@ -905,7 +947,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
-                  // Barra Mês 1 - Compara o preço 1 com o preço 2 (valor de referência)
+                  // Barra Mês 1
                   _buildBar(
                     month1,
                     price1,
@@ -913,7 +955,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                     AppColors.primary,
                     price2,
                   ),
-                  // Barra Mês 2 - Compara o preço 2 com o preço 1 (valor de referência)
+                  // Barra Mês 2
                   _buildBar(
                     month2,
                     price2,
@@ -930,7 +972,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     );
   }
 
-  // Função auxiliar _buildBar com a correção de lógica de comparação
+  // Função auxiliar _buildBar com a correção de lógica de comparação (MANTIDO)
   Widget _buildBar(
     String label,
     double value,
@@ -940,13 +982,12 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
   ) {
     final barWidthFactor = max > 0 ? (value / max) * 0.9 : 0.0;
 
-    // ✅ CORREÇÃO: Usa o valor de comparação passado diretamente para a lógica de cor
     Color labelColor = Colors.black87;
     if (comparisonValue > 0) {
       if (value < comparisonValue) {
-        labelColor = Colors.green.shade600; // Preço mais baixo: bom
+        labelColor = Colors.green.shade600;
       } else if (value > comparisonValue) {
-        labelColor = Colors.red.shade600; // Preço mais alto: ruim
+        labelColor = Colors.red.shade600;
       }
     }
 
@@ -991,7 +1032,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
   }
 }
 
-// CustomPainter para desenhar a fatia do gráfico de pizza (simplificado)
+// CustomPainter para desenhar a fatia do gráfico de pizza (simplificado) (MANTIDO)
 class _PieSlicePainter extends CustomPainter {
   final Color color;
   final double startAngle;
@@ -1012,7 +1053,6 @@ class _PieSlicePainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final rect = Rect.fromCircle(center: center, radius: size.width / 2);
 
-    // O último argumento 'useCenter' determina se desenha uma fatia (true) ou um arco (false)
     canvas.drawArc(rect, startAngle, sweepAngle, true, paint);
   }
 

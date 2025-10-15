@@ -1,3 +1,5 @@
+// lib/core/theme/app_colors.dart
+
 import 'package:flutter/material.dart';
 
 class AppColors {
@@ -17,13 +19,6 @@ class AppColors {
 
   // Fundo de Card de Edição
   static const Color bgCardEditColor = Color(0xFFEBEBEB);
-
-  // Cores dos Planos (Normal e Selecionado) - Usando valores diretos
-  // Plano Teste
-  // static const Color planTesteNormalBg = Color(0xFFEDE7F6);
-  // static const Color planTesteNormalBorder = purple200;
-  // static const Color planTesteCheckedBg = purple200;
-  // static const Color planTesteCheckedBorder = purple500;
 
   // Plano Básico
   static const Color planBasicoNormalBg = Color(0xFFF3E5F5);
@@ -90,6 +85,11 @@ class AppColors {
   static const Color gradientEnd = blue500;
   static const Color gradientStartAlt = purple200;
   static const Color gradientEndAlt = blue200;
+
+  // 🚨 NOVO: Gradiente de Contraste para destaque de fundo (Laranja/Amarelo)
+  static const Color gradientContrastStart = warning; // Amarelo vibrante
+  static const Color gradientContrastMid = pending; // Laranja
+  static const Color gradientContrastEnd = lightBackground; // Fundo claro
 
   // Cores de Ícones
   static const Color iconActiveDark = white;

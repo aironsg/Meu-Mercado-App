@@ -114,6 +114,7 @@ flutter:
     - assets/icons/add_item.png
     - assets/icons/list.png
     - assets/icons/google.png
+    - assets/icons/chart.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

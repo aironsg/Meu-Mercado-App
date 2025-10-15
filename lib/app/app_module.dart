@@ -1,3 +1,5 @@
+// lib/app/app_module.dart
+
 import 'package:flutter_modular/flutter_modular.dart';
 import '../features/splash/presentation/pages/splash_page.dart';
 import '../features/auth/presentation/login/pages/login_page.dart';
@@ -26,18 +28,11 @@ class AppModule extends Module {
 
     // 4. Rotas de Listas e Análise
     r.child('/lists', child: (_) => const ListPage());
+
+    // 🚨 REVERTIDO: Voltando a usar o HistoryPage diretamente para ler do Firebase.
     r.child('/history', child: (_) => const HistoryPage());
 
-    // 🚨 CORREÇÃO CRÍTICA: Acessa os argumentos corretamente via r.args.data
-    // Quando usamos o r.child com o construtor 'child: (context) => Widget',
-    // a injeção do argumento é implícita. Para o Modular, usamos o r.child com
-    // a função completa e acessamos r.args.data no construtor.
-    r.child(
-      '/item',
-      child: (_) => ItemPage(itemToEdit: r.args.data), // Usando r.args.data
-      // Se a versão do Modular for muito nova, podemos usar (args) => ItemPage(itemToEdit: args.data)
-      // Mas o padrão de acessar r.args é geralmente mais estável.
-    );
+    r.child('/item', child: (_) => ItemPage(itemToEdit: r.args.data));
   }
 
   @override

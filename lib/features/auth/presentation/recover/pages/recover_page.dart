@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meu_mercado/core/widgets/app_background.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/app_assets.dart';
 import '../controller/recover_controller.dart';
@@ -65,76 +66,78 @@ class _RecoverPageState extends ConsumerState<RecoverPage> {
           onPressed: () => Modular.to.pop(), // Navega de volta
         ),
       ),
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(AppAssets.logo, height: 220),
-                  const SizedBox(height: 24),
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(AppAssets.logo, height: 220),
+                    const SizedBox(height: 24),
 
-                  // Texto Informativo
-                  const Text(
-                    'Esqueceu sua senha? Sem problemas! Insira seu e-mail de cadastro abaixo e enviaremos um link para você redefini-la.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textPrimaryLight,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Campo Email
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'E-mail',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.email_outlined,
-                        color: AppColors.primary,
+                    // Texto Informativo
+                    const Text(
+                      'Esqueceu sua senha? Sem problemas! Insira seu e-mail de cadastro abaixo e enviaremos um link para você redefini-la.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textPrimaryLight,
+                        height: 1.5,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 32),
 
-                  // Botão de Enviar Link
-                  ElevatedButton(
-                    onPressed: state.loading
-                        ? null
-                        : () {
-                            controller.sendResetEmail(
-                              context,
-                              _emailController.text,
-                            );
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    // Campo Email
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'E-mail',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.email_outlined,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
-                    child: state.loading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Enviar Link de Recuperação',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
+                    const SizedBox(height: 24),
+
+                    // Botão de Enviar Link
+                    ElevatedButton(
+                      onPressed: state.loading
+                          ? null
+                          : () {
+                              controller.sendResetEmail(
+                                context,
+                                _emailController.text,
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: state.loading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'Enviar Link de Recuperação',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

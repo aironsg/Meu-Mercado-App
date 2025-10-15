@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meu_mercado/core/widgets/app_background.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/app_assets.dart';
 import '../controller/splash_controller.dart';
@@ -38,11 +39,13 @@ class _SplashPageState extends State<SplashPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Image.asset(AppAssets.logo, height: 300),
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: Center(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Image.asset(AppAssets.logo, height: 300),
+          ),
         ),
       ),
     );

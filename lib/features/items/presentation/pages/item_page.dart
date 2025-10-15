@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meu_mercado/core/theme/app_colors.dart';
+import 'package:meu_mercado/core/widgets/app_background.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 
@@ -194,172 +195,186 @@ class _ItemPageState extends ConsumerState<ItemPage> {
           onPressed: () => Modular.to.navigate("/home"),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: Column(
-          children: [
-            // 🔹 Espaço extra entre a AppBar e os campos
-            const SizedBox(height: 24),
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Column(
+            children: [
+              // 🔹 Espaço extra entre a AppBar e os campos
+              const SizedBox(height: 24),
 
-            Expanded(
-              child: ListView(
-                children: [
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        DropdownButtonFormField<String>(
-                          value: _selectedCategory,
-                          decoration: _inputDecoration('Categoria'),
-                          items: _categories.map((String category) {
-                            return DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(category),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedCategory = newValue;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: _inputDecoration('Nome do Item'),
-                          validator: (v) =>
-                              v!.isEmpty ? 'Campo obrigatório' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _quantityController,
-                                decoration: _inputDecoration('Quantidade'),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _priceController,
-                                decoration: _inputDecoration(
-                                  'Preço (Opcional)',
+              Expanded(
+                child: ListView(
+                  children: [
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: _selectedCategory,
+                            decoration: _inputDecoration('Categoria'),
+                            items: _categories.map((String category) {
+                              return DropdownMenuItem<String>(
+                                value: category,
+                                child: Text(category),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedCategory = newValue;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: _inputDecoration('Nome do Item'),
+                            validator: (v) =>
+                                v!.isEmpty ? 'Campo obrigatório' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _quantityController,
+                                  decoration: _inputDecoration('Quantidade'),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
                                 ),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  _currencyInputFormatter,
-                                ],
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _priceController,
+                                  decoration: _inputDecoration(
+                                    'Preço (Opcional)',
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    _currencyInputFormatter,
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _noteController,
+                            decoration: _inputDecoration('Observações'),
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton.icon(
+                            icon: Icon(
+                              _editingItemId != null
+                                  ? Icons.save
+                                  : Icons.add_circle_outline,
+                              size: 24,
+                            ),
+                            label: Text(
+                              _editingItemId != null
+                                  ? 'Salvar Alterações'
+                                  : 'Adicionar Item à Lista',
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 15,
+                                horizontal: 20,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              backgroundColor: _editingItemId != null
+                                  ? Colors.orange.shade700
+                                  : Theme.of(context).colorScheme.secondary,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 50),
+                            ),
+                            onPressed: state.loading
+                                ? null
+                                : () => _submitItem(controller),
+                          ),
+                          if (_editingItemId != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: TextButton(
+                                onPressed: _resetEditingState,
+                                child: const Text(
+                                  'Cancelar Edição',
+                                  style: TextStyle(color: Colors.red),
+                                ),
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _noteController,
-                          decoration: _inputDecoration('Observações'),
-                          maxLines: 3,
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          icon: Icon(
-                            _editingItemId != null
-                                ? Icons.save
-                                : Icons.add_circle_outline,
-                            size: 24,
-                          ),
-                          label: Text(
-                            _editingItemId != null
-                                ? 'Salvar Alterações'
-                                : 'Adicionar Item à Lista',
-                            style: const TextStyle(fontSize: 18),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 15,
-                              horizontal: 20,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            backgroundColor: _editingItemId != null
-                                ? Colors.orange.shade700
-                                : Theme.of(context).colorScheme.secondary,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(double.infinity, 50),
-                          ),
-                          onPressed: state.loading
-                              ? null
-                              : () => _submitItem(controller),
-                        ),
-                        if (_editingItemId != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: TextButton(
-                              onPressed: _resetEditingState,
-                              child: const Text(
-                                'Cancelar Edição',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 25),
-                      ],
+                          const SizedBox(height: 25),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  const Text(
-                    'Itens na Lista',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const Divider(),
-                  if (state.editingItems.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 20.0),
-                      child: Center(
-                        child: Text('Nenhum item adicionado ainda.'),
+                    const Text(
+                      'Itens na Lista',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ...state.editingItems.map((item) {
-                    final priceDisplay = item.price > 0.0
-                        ? _currencyFormatter.format(item.price)
-                        : 'Sem preço';
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        title: Text(
-                          '${item.name} (${item.category})',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text('${item.quantity}x | R\$ $priceDisplay'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _loadItemForEdit(item),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () =>
-                                  controller.removeItemFromEditingList(item.id),
-                            ),
-                          ],
+                    const Divider(),
+                    if (state.editingItems.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 20.0),
+                        child: Center(
+                          child: Text('Nenhum item adicionado ainda.'),
                         ),
                       ),
-                    );
-                  }).toList(),
-                  const SizedBox(height: 100),
-                ],
+                    ...state.editingItems.map((item) {
+                      final priceDisplay = item.price > 0.0
+                          ? _currencyFormatter.format(item.price)
+                          : 'Sem preço';
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        child: ListTile(
+                          title: Text(
+                            '${item.name} (${item.category})',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            '${item.quantity}x | R\$ $priceDisplay',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.blue,
+                                ),
+                                onPressed: () => _loadItemForEdit(item),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => controller
+                                    .removeItemFromEditingList(item.id),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
 

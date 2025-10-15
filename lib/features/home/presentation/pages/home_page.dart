@@ -1,11 +1,11 @@
-// lib/features/home/presentation/pages/home_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meu_mercado/features/items/domain/entities/item_entity.dart';
 import '../../../../core/theme/app_colors.dart';
+// 🚨 Reutiliza o AppBackground que agora contém o gradiente de contraste (laranja/amarelo)
+import '../../../../core/widgets/app_background.dart';
 import '../provider/home_page_provider.dart';
 
 class HomePage extends ConsumerWidget {
@@ -115,7 +115,7 @@ class HomePage extends ConsumerWidget {
       },
       {
         'title': 'Estatísticas', // Alterado de 'Histórico' para Estatísticas
-        'icon': 'assets/icons/history.png',
+        'icon': 'assets/icons/chart.png',
         'route': () =>
             Modular.to.pushNamed('/history'), // Rota para nova HistoryPage
       },
@@ -132,7 +132,8 @@ class HomePage extends ConsumerWidget {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      // Fundo transparente para permitir que o gradiente do body apareça
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Meu Mercado'),
         centerTitle: true,
@@ -149,193 +150,194 @@ class HomePage extends ConsumerWidget {
           ),
         ],
       ),
-      // 🚨 CORREÇÃO CRÍTICA: Troca o Column/Expanded por um ListView para permitir a rolagem de todo o conteúdo e expansão correta.
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // SAUDAÇÃO (TOPO)
-          Row(
-            children: [
-              Image.asset(
-                'assets/images/logo_app_meu_mercado.png',
-                height: 100,
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_greeting()},',
-                      style: TextStyle(
-                        color: AppColors.textPrimaryLight.withOpacity(0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      displayName,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+      // Envolve o conteúdo com o AppBackground (gradiente vibrante)
+      body: AppBackground(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // SAUDAÇÃO (TOPO)
+            Row(
+              children: [
+                Image.asset(
+                  'assets/images/logo_app_meu_mercado.png',
+                  height: 100,
                 ),
-              ),
-              CircleAvatar(
-                radius: 28,
-                backgroundImage: user?.photoURL != null
-                    ? NetworkImage(user!.photoURL!)
-                    : null,
-                backgroundColor: AppColors.primary.withOpacity(0.2),
-                child: user?.photoURL == null
-                    ? Text(
-                        displayName[0].toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                        ),
-                      )
-                    : null,
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // GRID DE CARDS
-          // 🚨 CORREÇÃO: Usa GridView.builder com ShrinkWrap e Física limitada para se ajustar ao ListView pai
-          GridView.builder(
-            shrinkWrap:
-                true, // Permite que o GridView seja usado dentro de um ListView
-            physics:
-                const NeverScrollableScrollPhysics(), // Desabilita o scroll do GridView
-            itemCount: tiles.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 32,
-              crossAxisSpacing: 32,
-              childAspectRatio: 1.05,
-            ),
-            itemBuilder: (context, index) {
-              final tile = tiles[index];
-              return GestureDetector(
-                onTap: tile['route'] as void Function(),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 6,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
+                Expanded(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Image.asset(tile['icon'] as String, height: 46),
-                      const SizedBox(height: 10),
                       Text(
-                        tile['title'] as String,
+                        '${_greeting()},',
+                        // Cor de texto escura para contraste com o novo gradiente claro/vibrante.
+                        style: TextStyle(
+                          color: AppColors.textPrimaryLight.withOpacity(0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        displayName,
+                        // Cor de texto escura
                         style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimaryLight,
                         ),
                       ),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
+                CircleAvatar(
+                  radius: 28,
+                  backgroundImage: user?.photoURL != null
+                      ? NetworkImage(user!.photoURL!)
+                      : null,
+                  backgroundColor: AppColors.primary.withOpacity(0.2),
+                  child: user?.photoURL == null
+                      ? Text(
+                          displayName[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                          ),
+                        )
+                      : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
 
-          // VISÃO GERAL DA ÚLTIMA LISTA (PARTE INFERIOR)
-          // 🚨 NOVO: A margem de segurança foi movida para o ListView.padding, mas garantimos o espaçamento superior aqui.
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Última Lista de Compras',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // GRID DE CARDS
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: tiles.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 1.05,
               ),
-              const SizedBox(height: 10),
-              latestListAsync.when(
-                loading: () => const Center(child: LinearProgressIndicator()),
-                error: (e, s) => Text('Erro ao carregar lista: $e'),
-                data: (list) {
-                  if (list == null) {
-                    return const Text('Nenhuma lista cadastrada ainda.');
-                  }
-
-                  final totalItems =
-                      (list['items'] as List<dynamic>?)?.length ?? 0;
-                  final date = list['createdAt'] is DateTime
-                      ? (list['createdAt'] as DateTime).day.toString().padLeft(
-                              2,
-                              '0',
-                            ) +
-                            '/' +
-                            (list['createdAt'] as DateTime).month
-                                .toString()
-                                .padLeft(2, '0')
-                      : 'Data Indefinida';
-
-                  final List<ItemEntity> items =
-                      (list['items'] as List<dynamic>?)?.cast<ItemEntity>() ??
-                      [];
-
-                  return Card(
-                    elevation: 4,
-                    // 🚨 CORREÇÃO: ExpansionTile se expande para baixo, e o ListView acomoda essa expansão sem sobrepor
-                    child: ExpansionTile(
-                      tilePadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      leading: const Icon(
-                        Icons.receipt_long,
-                        color: AppColors.primary,
-                      ),
-                      title: Text('Lista de $date'),
-                      subtitle: Text('$totalItems itens na lista.'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios),
-                        onPressed: () {
-                          // Navega para a ListPage, que é o fluxo de gerenciamento
-                          Modular.to.pushNamed('/lists');
-                        },
-                        tooltip: 'Ver histórico completo',
-                      ),
+              itemBuilder: (context, index) {
+                final tile = tiles[index];
+                return GestureDetector(
+                  onTap: tile['route'] as void Function(),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface, // Mantém o card branco
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.black.withOpacity(0.1),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Divider(height: 1),
-                        // Tabela de Itens (Visualização com rolagem limitada)
-                        _buildItemListTable(context, items),
-
-                        // Botão para ir para a tela de edição (reforça a UX)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: TextButton(
-                              onPressed: () => Modular.to.pushNamed('/lists'),
-                              child: const Text(
-                                'Ir para o Histórico de Compras',
-                              ),
-                            ),
+                        Image.asset(tile['icon'] as String, height: 46),
+                        const SizedBox(height: 10),
+                        Text(
+                          tile['title'] as String,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-              // Espaçamento final para a área de botões do sistema
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 16.0),
-            ],
-          ),
-        ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // VISÃO GERAL DA ÚLTIMA LISTA (PARTE INFERIOR)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Última Lista de Compras',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                latestListAsync.when(
+                  loading: () => const Center(child: LinearProgressIndicator()),
+                  error: (e, s) => Text('Erro ao carregar lista: $e'),
+                  data: (list) {
+                    if (list == null) {
+                      return const Text('Nenhuma lista cadastrada ainda.');
+                    }
+
+                    final totalItems =
+                        (list['items'] as List<dynamic>?)?.length ?? 0;
+                    final date = list['createdAt'] is DateTime
+                        ? (list['createdAt'] as DateTime).day
+                                  .toString()
+                                  .padLeft(2, '0') +
+                              '/' +
+                              (list['createdAt'] as DateTime).month
+                                  .toString()
+                                  .padLeft(2, '0')
+                        : 'Data Indefinida';
+
+                    final List<ItemEntity> items =
+                        (list['items'] as List<dynamic>?)?.cast<ItemEntity>() ??
+                        [];
+
+                    return Card(
+                      elevation: 4,
+                      child: ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: const Icon(
+                          Icons.receipt_long,
+                          color: AppColors.primary,
+                        ),
+                        title: Text('Lista de $date'),
+                        subtitle: Text('$totalItems itens na lista.'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.arrow_forward_ios),
+                          onPressed: () {
+                            Modular.to.pushNamed('/lists');
+                          },
+                          tooltip: 'Ver histórico completo',
+                        ),
+                        children: [
+                          const Divider(height: 1),
+                          _buildItemListTable(context, items),
+
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: TextButton(
+                                onPressed: () => Modular.to.pushNamed('/lists'),
+                                child: const Text(
+                                  'Ir para o Histórico de Compras',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                // Espaçamento final para a área de botões do sistema
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 16.0),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
